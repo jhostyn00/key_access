@@ -1,9 +1,11 @@
 'use client';
+import HeaderDashboard from '@/app/components/HeaderDashboard';
 
 export default function DashboardPage() {
   return (
-    <main className="p-6">
-      <h1 className="text-2xl font-bold">¡Bienvenido al sistema!</h1>
+    <main>
+      <HeaderDashboard />
+      
     </main>
   );
 }
