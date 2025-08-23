@@ -156,22 +156,22 @@ export default function DashboardPage() {
 
         <div className="mt-6 flex flex-col gap-4">
           <label className="text-gray-700">Nombre</label>
-          <input id="nombre" value={formData.nombre} onChange={handleChange} required className="border-2 p-2 rounded" />
+          <input id="nombre" value={formData.nombre} onChange={handleChange} required className="border-2 p-2 rounded text-black" />
 
           <label className="text-gray-700">Apellido</label>
-          <input id="apellido" value={formData.apellido} onChange={handleChange} required className="border-2 p-2 rounded" />
+          <input id="apellido" value={formData.apellido} onChange={handleChange} required className="border-2 p-2 rounded text-black" />
 
           <label className="text-gray-700">DNI</label>
-          <input id="dni" value={formData.dni} onChange={handleChange} required className="border-2 p-2 rounded" />
+          <input id="dni" value={formData.dni} onChange={handleChange} required className="border-2 p-2 rounded text-black" />
 
           <label className="text-gray-700">Tipo de Persona</label>
-          <select id="tipo_persona" value={formData.tipo_persona} onChange={handleChange} required className="border-2 p-2 rounded">
-            <option value="">Seleccionar...</option>
-            <option value="residente">Residente</option>
-            <option value="propietario">Propietario</option>
-            <option value="trabajador">Trabajador</option>
-            <option value="visitante">Visitante</option>
-            <option value="proveedor">Proveedor</option>
+          <select id="tipo_persona" value={formData.tipo_persona} onChange={handleChange} required className="border-2 p-2 rounded text-black">
+            <option className='text-black' value="">Seleccionar...</option>
+            <option className='text-black' value="residente">Residente</option>
+            <option className='text-black' value="propietario">Propietario</option>
+            <option className='text-black' value="trabajador">Trabajador</option>
+            <option className='text-black' value="visitante">Visitante</option>
+            <option className='text-black' value="proveedor">Proveedor</option>
           </select>
 
           {(formData.tipo_persona === 'residente' || formData.tipo_persona === 'propietario') && (
@@ -179,10 +179,10 @@ export default function DashboardPage() {
               {formData.tipo_persona === 'residente' && (
                 <>
                   <label className="text-gray-700">Departamento</label>
-                  <select id="id_departamento" value={formData.id_departamento} onChange={handleChange} className="border-2 p-2 rounded">
-                    <option value="">Seleccionar...</option>
+                  <select id="id_departamento" value={formData.id_departamento} onChange={handleChange} className="border-2 p-2 rounded text-black">
+                    <option className='text-black' value="">Seleccionar...</option>
                     {departamentos.map(dep => (
-                      <option key={dep.id_departamento} value={dep.id_departamento}>
+                      <option className='text-black' key={dep.id_departamento} value={dep.id_departamento}>
                         {dep.edificio?.nombre_edificio} - {dep.numero}
                       </option>
                     ))}
@@ -191,17 +191,17 @@ export default function DashboardPage() {
               )}
 
               <label className="text-gray-700">Teléfono</label>
-              <input id="telefono" value={formData.telefono} onChange={handleChange} className="border-2 p-2 rounded" />
+              <input id="telefono" value={formData.telefono} onChange={handleChange} className="border-2 p-2 rounded text-black" />
             </>
           )}
 
           {formData.tipo_persona === 'propietario' && (
             <>
               <label className="text-gray-700">Edificio</label>
-              <select id="id_edificio" value={formData.id_edificio} onChange={handleChange} className="border-2 p-2 rounded">
-                <option value="">Seleccionar...</option>
+              <select id="id_edificio" value={formData.id_edificio} onChange={handleChange} className="border-2 p-2 rounded text-black">
+                <option className='text-black' value="">Seleccionar...</option>
                 {edificios.map(ed => (
-                  <option key={ed.id_edificio} value={ed.id_edificio}>
+                  <option className='text-black' key={ed.id_edificio} value={ed.id_edificio}>
                     {ed.nombre_edificio}
                   </option>
                 ))}
@@ -212,19 +212,19 @@ export default function DashboardPage() {
           {formData.tipo_persona === 'trabajador' && (
             <>
               <label className="text-gray-700">Cargo</label>
-              <input id="cargo" value={formData.cargo} onChange={handleChange} className="border-2 p-2 rounded" />
+              <input id="cargo" value={formData.cargo} onChange={handleChange} className="border-2 p-2 rounded text-black" />
               <label className="text-gray-700">Turno</label>
-              <input id="turno" value={formData.turno} onChange={handleChange} className="border-2 p-2 rounded" />
+              <input id="turno" value={formData.turno} onChange={handleChange} className="border-2 p-2 rounded text-black" />
             </>
           )}
 
           {(formData.tipo_persona === 'visitante' || formData.tipo_persona === 'proveedor') && (
             <>
               <label className="text-gray-700">Residente destino</label>
-              <select id="id_residente_visitado" value={formData.id_residente_visitado} onChange={handleChange} className="border-2 p-2 rounded">
-                <option value="">Seleccionar...</option>
+              <select id="id_residente_visitado" value={formData.id_residente_visitado} onChange={handleChange} className="border-2 p-2 rounded text-black">
+                <option className='text-black' value="">Seleccionar...</option>
                 {residentes.map(r => (
-                  <option key={r.id_residente} value={r.id_residente}>
+                  <option className='text-black' key={r.id_residente} value={r.id_residente}>
                     {r.persona?.nombre} {r.persona?.apellido}
                   </option>
                 ))}
@@ -235,16 +235,16 @@ export default function DashboardPage() {
           {formData.tipo_persona === 'visitante' && (
             <>
               <label className="text-gray-700">Motivo de visita</label>
-              <input id="motivo_visita" value={formData.motivo_visita} onChange={handleChange} className="border-2 p-2 rounded" />
+              <input id="motivo_visita" value={formData.motivo_visita} onChange={handleChange} className="border-2 p-2 rounded text-black" />
             </>
           )}
 
           {formData.tipo_persona === 'proveedor' && (
             <>
               <label className="text-gray-700">Empresa</label>
-              <input id="empresa" value={formData.empresa} onChange={handleChange} className="border-2 p-2 rounded" />
+              <input id="empresa" value={formData.empresa} onChange={handleChange} className="border-2 p-2 rounded text-black" />
               <label className="text-gray-700">Descripción del producto</label>
-              <input id="descripcion_producto" value={formData.descripcion_producto} onChange={handleChange} className="border-2 p-2 rounded" />
+              <input id="descripcion_producto" value={formData.descripcion_producto} onChange={handleChange} className="border-2 p-2 rounded text-black" />
             </>
           )}
         </div>
