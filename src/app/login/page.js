@@ -44,12 +44,12 @@ export default function LoginPage() {
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-semibold">INGRESA</h2>
-            <button
-              type="button"
+            <a
+              href="/dashboard"
               className="text-sm text-white/80 hover:text-white transition"
             >
-              Sign up
-            </button>
+              REGISTRARSE
+            </a>
           </div>
 
           <label className="text-sm block mb-1">DNI</label>
