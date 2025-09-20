@@ -1,11 +1,15 @@
 'use client';
 
 import { QRCodeCanvas } from 'qrcode.react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import supabase from '@/lib/supabaseClient';
+import html2canvas from 'html2canvas';
 import HeaderDashboard from '@/app/components/HeaderDashboard';
 
 export default function DashboardPage() {
+
+  const qrRef = useRef(null);
+
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -27,6 +31,7 @@ export default function DashboardPage() {
   const [residentes, setResidentes] = useState([]);
   const [message, setMessage] = useState('');
   const [uidGenerado, setUidGenerado] = useState('');
+  const [qrUrl, setQrUrl] = useState('');
 
   // ------------------ VALIDACIONES ------------------
   const validarDNI = (dni) => /^[0-9]{8}$/.test(dni);
@@ -59,33 +64,64 @@ export default function DashboardPage() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setMessage('');
+  setQrUrl('');
+  setUidGenerado('');
 
-    // ------------------ VALIDAR ANTES DE INSERTAR ------------------
-    if (!validarDNI(formData.dni)) {
-      setMessage('❌ DNI inválido. Debe tener exactamente 8 dígitos.');
-      return;
-    }
+  if (!validarDNI(formData.dni)) {
+    setMessage('❌ DNI inválido. Debe tener exactamente 8 dígitos.');
+    return;
+  }
 
-    if (formData.telefono && !validarTelefono(formData.telefono)) {
-      setMessage(
-        '❌ Teléfono inválido. Debe tener 7 dígitos (fijo) o 9 dígitos empezando en 9 (celular).'
-      );
-      return;
-    }
+  if (formData.telefono && !validarTelefono(formData.telefono)) {
+    setMessage(
+      '❌ Teléfono inválido. Debe tener 7 dígitos (fijo) o 9 dígitos empezando en 9 (celular).'
+    );
+    return;
+  }
 
-    // Generar UID antes de guardar
-    const uidBase =
-      formData.tipo_persona.substring(0, 3).toUpperCase() +
-      '-' +
-      Math.floor(Math.random() * 10000)
-        .toString()
-        .padStart(4, '0');
-    const uidGeneradoValue = `https://tusitio.com/p/${uidBase}`;
+  const uidBase =
+    formData.tipo_persona.substring(0, 3).toUpperCase() +
+    '-' +
+    Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, '0');
+  const uidGeneradoValue = `https://tusitio.com/p/${uidBase}`;
 
-    // 1. Insertar en persona
+  setUidGenerado(uidGeneradoValue);
+
+  try {
+    // Esperar a que el QR se renderice (puedes usar un pequeño delay o await next tick)
+    await new Promise((r) => setTimeout(r, 500));
+
+    // Capturar QR como imagen usando html2canvas
+    const canvas = await html2canvas(qrRef.current);
+    const blob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.95)
+    );
+
+    const file = new File([blob], `${formData.dni}_qr.jpg`, {
+      type: 'image/jpeg',
+    });
+
+    // Subir a Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('qrs')
+      .upload(`qrs/${formData.dni}_qr.jpg`, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    // Obtener URL pública
+    const { data: urlData } = supabase.storage
+      .from('qrs')
+      .getPublicUrl(`qrs/${formData.dni}_qr.jpg`);
+
+    const publicUrl = urlData.publicUrl;
+    setQrUrl(publicUrl);
+
+    // Insertar persona con uid y url del qr en un solo insert
     const { data: personaData, error: personaError } = await supabase
       .from('persona')
       .insert({
@@ -94,6 +130,8 @@ export default function DashboardPage() {
         dni: formData.dni,
         tipo_persona: formData.tipo_persona,
         uid_tarjeta: uidGeneradoValue,
+        qr_url: publicUrl,
+        rol: 3,
       })
       .select()
       .single();
@@ -104,10 +142,9 @@ export default function DashboardPage() {
     }
 
     const id_persona = personaData.id_persona;
-
-    // 2. Insertar en tabla específica según tipo_persona
     let errorEspecifico = null;
 
+    // Insertar en tabla específica según tipo_persona (igual que antes)
     switch (formData.tipo_persona) {
       case 'residente':
         ({ error: errorEspecifico } = await supabase
@@ -167,11 +204,7 @@ export default function DashboardPage() {
       return;
     }
 
-    // ✅ Registro exitoso
-    setMessage('✅ Registro exitoso');
-    setUidGenerado(uidGeneradoValue);
-
-    // Reset form
+    setMessage('✅ Persona registrada con código QR subido');
     setFormData({
       nombre: '',
       apellido: '',
@@ -187,7 +220,12 @@ export default function DashboardPage() {
       empresa: '',
       descripcion_producto: '',
     });
-  };
+  } catch (error) {
+    console.error(error);
+    setMessage('❌ Error al subir QR o registrar persona');
+  }
+};
+
 
   return (
     <main className="bg-gradient-to-b from-gray-100 to-gray-500 min-h-screen">
@@ -417,9 +455,18 @@ export default function DashboardPage() {
         </div>
       </form>
 
-      {uidGenerado && (
+      {/* QR oculto para capturar imagen */}
+      <div
+        style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}
+        ref={qrRef}
+      >
+        {uidGenerado && <QRCodeCanvas value={uidGenerado} size={200} />}
+      </div>
+
+      {/* Mostrar QR al usuario */}
+      {qrUrl && (
         <div className="flex justify-center mt-6">
-          <QRCodeCanvas value={uidGenerado} size={200} />
+          <img src={qrUrl} alt="Código QR" width={200} />
         </div>
       )}
     </main>
