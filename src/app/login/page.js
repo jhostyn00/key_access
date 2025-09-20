@@ -1,36 +1,37 @@
 'use client';
 
 import { useState } from 'react';
-import bcrypt from 'bcryptjs';
-import { supabase } from '@/lib/supabaseClient';
+import supabase from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-  const [usuario, setUsuario] = useState('');
+  const [usuario, setUsuario] = useState(''); // DNI
   const [contrasena, setContrasena] = useState('');
   const router = useRouter();
 
   const handleLogin = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const { data, error } = await supabase
-    .from('usuarios')
-    .select('*')
-    .eq('usuario', usuario)
-    .single();
+    const { data, error } = await supabase
+      .from('persona')
+      .select('*')
+      .eq('dni', usuario)
+      .single();
 
-  if (error || !data) return alert('Usuario no encontrado');
+    if (error || !data) {
+      alert('Usuario no encontrado');
+      return;
+    }
 
-  const match = await bcrypt.compare(contrasena, data.contrasena);
+    // Comparación directa (texto plano)
+    if (contrasena !== data.uid_tarjeta) {
+      alert('Contraseña incorrecta');
+      return;
+    }
 
-  if (!match) {
-    alert('Contraseña incorrecta');       
-  } else {
-    alert('Bienvenido, ' + data.usuario);
+    alert('Bienvenido, ' + data.nombre);
     router.push('/dashboard');
-  }
-};
-
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-400 flex items-center justify-center font-[Outfit] px-6 py-12">
@@ -51,10 +52,10 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <label className="text-sm block mb-1">Usuario</label>
+          <label className="text-sm block mb-1">DNI</label>
           <input
             type="text"
-            placeholder="e-mail address"
+            placeholder="Ingrese su DNI"
             value={usuario}
             onChange={(e) => setUsuario(e.target.value)}
             className="w-full mb-4 p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300"
@@ -64,7 +65,7 @@ export default function LoginPage() {
           <label className="text-sm block mb-1">Contraseña</label>
           <input
             type="password"
-            placeholder="password"
+            placeholder="Ingrese su contraseña"
             value={contrasena}
             onChange={(e) => setContrasena(e.target.value)}
             className="w-full mb-4 p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300"
