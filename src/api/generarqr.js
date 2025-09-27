@@ -1,3 +1,5 @@
+import logger from 'src/app/api/route.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
@@ -27,12 +29,15 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errorData = await response.json();
+      logger.error(`Error API QR: ${response.status} - ${errorData.message} - IP: ${ip}`);
       return res.status(response.status).json({ error: errorData.message });
     }
 
     const qrData = await response.json();
+    logger.info(`QR generado correctamente para IP: ${ip}`);
     res.status(200).json(qrData);
   } catch (error) {
+    logger.error(`Error generando QR - IP: ${ip} - Error: ${error.message}`);
     res.status(500).json({ error: 'Error generando QR' });
   }
 }
