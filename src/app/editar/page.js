@@ -1,339 +1,247 @@
 'use client';
 
-import { QRCodeCanvas } from 'qrcode.react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import supabase from '@/lib/supabaseClient';
-import html2canvas from 'html2canvas';
-import HeaderDashboard from '@/app/components/HeaderDashboard';
 
-export default function DashboardPage() {
-  const qrRef = useRef(null);
-
-  const [formData, setFormData] = useState({
-    nombre: '',
-    apellido: '',
-    dni: '',
-    telefono: '',
-    tipo_persona: '',
-    id_departamento: '',
-    id_edificio: '',
-    cargo: '',
-    turno: '',
-    motivo_visita: '',
-    id_residente_visitado: '',
-    empresa: '',
-    descripcion_producto: '',
-  });
-
-  const [departamentos, setDepartamentos] = useState([]);
-  const [edificios, setEdificios] = useState([]);
-  const [residentes, setResidentes] = useState([]);
+export default function EditarPage() {
+  const [personas, setPersonas] = useState([]);
   const [message, setMessage] = useState('');
-  const [uidGenerado, setUidGenerado] = useState('');
-  const [qrUrl, setQrUrl] = useState('');
+  const [editingPersona, setEditingPersona] = useState(null);
+  const [formData, setFormData] = useState({ nombre: '', apellido: '', dni: '' });
 
-  // ------------------ VALIDACIONES ------------------
-  const validarDNI = (dni) => /^[0-9]{8}$/.test(dni);
-  const validarTelefono = (telefono) =>
-    /^9\d{8}$/.test(telefono) || /^[0-9]{7}$/.test(telefono);
+  const fetchPersonas = async () => {
+    const { data, error } = await supabase
+      .from('persona')
+      .select(`
+        id_persona,
+        nombre,
+        apellido,
+        dni,
+        tipo_persona,
+        uid_tarjeta,
+        eliminado,
+        residente (telefono, id_departamento),
+        propietario (telefono, id_edificio),
+        trabajador (cargo, turno),
+        visitante (motivo_visita, id_residente_visitado),
+        proveedor (empresa, descripcion_producto, id_residente_destino)
+      `)
+      .or('eliminado.eq.false,eliminado.is.null');
+
+    if (error) {
+      console.error('Error fetchPersonas:', JSON.stringify(error, null, 2));
+      setMessage(`Error cargando personas: ${error.message || JSON.stringify(error)}`);
+    } else {
+      setPersonas(data);
+      setMessage('');
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: departamentos } = await supabase
-        .from('departamento')
-        .select('id_departamento, numero, edificio(nombre_edificio)');
-      setDepartamentos(departamentos || []);
-
-      const { data: edificios } = await supabase.from('edificio').select();
-      setEdificios(edificios || []);
-
-      const { data: residentes } = await supabase
-        .from('residente')
-        .select('id_residente, persona(nombre, apellido)');
-      setResidentes(residentes || []);
-    };
-
-    fetchData();
+    fetchPersonas();
   }, []);
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({
+  const handleEliminar = async (id_persona) => {
+    const { error } = await supabase
+      .from('persona')
+      .update({ eliminado: true })
+      .eq('id_persona', id_persona);
+
+    if (error) {
+      console.error('Error al eliminar persona:', JSON.stringify(error, null, 2));
+      setMessage(`Error al eliminar persona: ${error.message || JSON.stringify(error)}`);
+    } else {
+      setMessage('Persona eliminada correctamente');
+      fetchPersonas();
+    }
+  };
+
+  const handleEditar = (persona) => {
+    setEditingPersona(persona);
+    setFormData({
+      nombre: persona.nombre || '',
+      apellido: persona.apellido || '',
+      dni: persona.dni || '',
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
-      [e.target.id]: e.target.value,
+      [name]: value,
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    setQrUrl('');
-    setUidGenerado('');
+  const handleGuardar = async () => {
+    if (!editingPersona) return;
 
-    if (!validarDNI(formData.dni)) {
-      setMessage('❌ DNI inválido. Debe tener exactamente 8 dígitos.');
-      return;
-    }
+    const { error } = await supabase
+      .from('persona')
+      .update({
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        dni: formData.dni,
+      })
+      .eq('id_persona', editingPersona.id_persona);
 
-    if (formData.telefono && !validarTelefono(formData.telefono)) {
-      setMessage(
-        '❌ Teléfono inválido. Debe tener 7 dígitos (fijo) o 9 dígitos empezando en 9 (celular).'
-      );
-      return;
-    }
-
-    // ---------------- GENERAR UID ----------------
-    const uidBase =
-      formData.tipo_persona.substring(0, 3).toUpperCase() +
-      '-' +
-      Math.floor(Math.random() * 10000)
-        .toString()
-        .padStart(4, '0');
-
-    const uidGeneradoValue = `https://tusitio.com/p/${uidBase}`;
-
-    // ---------------- DATOS PARA EL QR ----------------
-    const datosPersona = {
-      nombre: formData.nombre,
-      apellido: formData.apellido,
-      dni: formData.dni,
-      telefono: formData.telefono,
-      tipo_persona: formData.tipo_persona,
-      uid: uidGeneradoValue,
-    };
-
-    const qrContent = JSON.stringify(datosPersona);
-    setUidGenerado(qrContent);
-
-    try {
-      await new Promise((r) => setTimeout(r, 500));
-
-      // Capturar QR como imagen usando html2canvas
-      const canvas = await html2canvas(qrRef.current);
-      const blob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, 'image/jpeg', 0.95)
-      );
-
-      const file = new File([blob], `${formData.dni}_qr.jpg`, {
-        type: 'image/jpeg',
-      });
-
-      // Subir a Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('qrs')
-        .upload(`qrs/${formData.dni}_qr.jpg`, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Obtener URL pública
-      const { data: urlData } = supabase.storage
-        .from('qrs')
-        .getPublicUrl(`qrs/${formData.dni}_qr.jpg`);
-
-      const publicUrl = urlData.publicUrl;
-      setQrUrl(publicUrl);
-
-      // Insertar persona en la base
-      const { data: personaData, error: personaError } = await supabase
-        .from('persona')
-        .insert({
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          dni: formData.dni,
-          tipo_persona: formData.tipo_persona,
-          uid_tarjeta: uidGeneradoValue,
-          qr_url: publicUrl,
-          rol: 3,
-        })
-        .select()
-        .single();
-
-      if (personaError) {
-        setMessage('Error al registrar persona');
-        return;
-      }
-
-      const id_persona = personaData.id_persona;
-      let errorEspecifico = null;
-
-      // Insertar en tabla específica según tipo_persona
-      switch (formData.tipo_persona) {
-        case 'residente':
-          ({ error: errorEspecifico } = await supabase.from('residente').insert({
-            id_residente: id_persona,
-            id_departamento: parseInt(formData.id_departamento),
-            telefono: formData.telefono,
-          }));
-          break;
-
-        case 'propietario':
-          ({ error: errorEspecifico } = await supabase
-            .from('propietario')
-            .insert({
-              id_propietario: id_persona,
-              id_edificio: parseInt(formData.id_edificio),
-              telefono: formData.telefono,
-            }));
-          break;
-
-        case 'trabajador':
-          ({ error: errorEspecifico } = await supabase
-            .from('trabajador')
-            .insert({
-              id_trabajador: id_persona,
-              cargo: formData.cargo,
-              turno: formData.turno,
-            }));
-          break;
-
-        case 'visitante':
-          ({ error: errorEspecifico } = await supabase
-            .from('visitante')
-            .insert({
-              id_visitante: id_persona,
-              motivo_visita: formData.motivo_visita,
-              id_residente_visitado: parseInt(formData.id_residente_visitado),
-            }));
-          break;
-
-        case 'proveedor':
-          ({ error: errorEspecifico } = await supabase
-            .from('proveedor')
-            .insert({
-              id_proveedor: id_persona,
-              empresa: formData.empresa,
-              descripcion_producto: formData.descripcion_producto,
-              id_residente_destino: parseInt(formData.id_residente_visitado),
-            }));
-          break;
-      }
-
-      if (errorEspecifico) {
-        console.error('Error tabla específica:', errorEspecifico);
-        setMessage('Persona creada, pero error en tabla específica');
-        return;
-      }
-
-      setMessage('✅ Persona registrada con código QR con datos');
-      setFormData({
-        nombre: '',
-        apellido: '',
-        dni: '',
-        telefono: '',
-        tipo_persona: '',
-        id_departamento: '',
-        id_edificio: '',
-        cargo: '',
-        turno: '',
-        motivo_visita: '',
-        id_residente_visitado: '',
-        empresa: '',
-        descripcion_producto: '',
-      });
-    } catch (error) {
-      console.error(error);
-      setMessage('❌ Error al subir QR o registrar persona');
+    if (error) {
+      console.error('Error al guardar persona:', JSON.stringify(error, null, 2));
+      setMessage(`Error al guardar persona: ${error.message || JSON.stringify(error)}`);
+    } else {
+      setMessage('Persona actualizada correctamente');
+      setEditingPersona(null);
+      fetchPersonas();
     }
   };
 
   return (
-    <main className="bg-gradient-to-b from-gray-100 to-gray-500 min-h-screen">
-      <HeaderDashboard />
-      <form
-        onSubmit={handleSubmit}
-        className="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-lg mt-10"
-      >
-        <h1 className="text-center text-3xl font-bold text-gray-800">
-          Registrar Persona
-        </h1>
-        {message && (
-          <p className="text-center mt-4 font-semibold text-green-600">
-            {message}
-          </p>
-        )}
+    <main className="bg-gray-100 min-h-screen p-6">
+      <h1 className="text-3xl font-bold mb-6 text-black">Editar / Eliminar Personas</h1>
 
-        {/* ---- CAMPOS DEL FORMULARIO ---- */}
-        <div className="mt-6 flex flex-col gap-4">
-          <label className="text-gray-700">Nombre</label>
-          <input
-            id="nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-          />
+      {message && (
+        <p className="mb-4 text-center font-semibold text-red-600">{message}</p>
+      )}
 
-          <label className="text-gray-700">Apellido</label>
-          <input
-            id="apellido"
-            value={formData.apellido}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-          />
+      {personas.length === 0 ? (
+        <p className="text-black">No hay personas para mostrar.</p>
+      ) : (
+        <table className="w-full bg-white rounded shadow">
+          <thead>
+            <tr className="border-b">
+              <th className="p-2 text-left text-black">Nombre</th>
+              <th className="p-2 text-left text-black">Apellido</th>
+              <th className="p-2 text-left text-black">DNI</th>
+              <th className="p-2 text-left text-black">Tipo</th>
+              <th className="p-2 text-left text-black">Detalles</th>
+              <th className="p-2 text-left text-black">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {personas.map((p) => (
+              <tr key={p.id_persona} className="border-b hover:bg-gray-50">
+                <td className="p-2 text-black">{p.nombre}</td>
+                <td className="p-2 text-black">{p.apellido}</td>
+                <td className="p-2 text-black">{p.dni}</td>
+                <td className="p-2 text-black capitalize">{p.tipo_persona}</td>
+                <td className="p-2 text-sm text-gray-700">
+                  {/* Mostrar detalles según tipo */}
+                  {p.tipo_persona === 'residente' && (
+                    <>
+                      Teléfono: {p.residente?.telefono || '-'} <br />
+                      Departamento ID: {p.residente?.id_departamento || '-'}
+                    </>
+                  )}
+                  {p.tipo_persona === 'propietario' && (
+                    <>
+                      Teléfono: {p.propietario?.telefono || '-'} <br />
+                      Edificio ID: {p.propietario?.id_edificio || '-'}
+                    </>
+                  )}
+                  {p.tipo_persona === 'trabajador' && (
+                    <>
+                      Cargo: {p.trabajador?.cargo || '-'} <br />
+                      Turno: {p.trabajador?.turno || '-'}
+                    </>
+                  )}
+                  {p.tipo_persona === 'visitante' && (
+                    <>
+                      Motivo: {p.visitante?.motivo_visita || '-'} <br />
+                      Residente visitado ID: {p.visitante?.id_residente_visitado || '-'}
+                    </>
+                  )}
+                  {p.tipo_persona === 'proveedor' && (
+                    <>
+                      Empresa: {p.proveedor?.empresa || '-'} <br />
+                      Producto: {p.proveedor?.descripcion_producto || '-'} <br />
+                      Residente destino ID: {p.proveedor?.id_residente_destino || '-'}
+                    </>
+                  )}
+                </td>
+                <td className="p-2 space-x-2">
+                  <button
+                    onClick={() => handleEditar(p)}
+                    className="bg-yellow-500 text-black px-3 py-1 rounded hover:bg-yellow-600 transition"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleEliminar(p.id_persona)}
+                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
-          <label className="text-gray-700">DNI</label>
-          <input
-            id="dni"
-            value={formData.dni}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-            maxLength={8}
-            inputMode="numeric"
-            pattern="[0-9]{8}"
-          />
+      {/* Modal para editar */}
+      {editingPersona && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4">
+          <div className="bg-white rounded p-6 max-w-lg w-full text-black">
+            <h2 className="text-xl font-bold mb-4">Editar Persona</h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleGuardar();
+              }}
+            >
+              <label className="block mb-2">
+                Nombre:
+                <input
+                  type="text"
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={handleInputChange}
+                  className="border rounded px-3 py-1 w-full"
+                  required
+                />
+              </label>
 
-          <label className="text-gray-700">Tipo de Persona</label>
-          <select
-            id="tipo_persona"
-            value={formData.tipo_persona}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-          >
-            <option className="text-black" value="">
-              Seleccionar...
-            </option>
-            <option className="text-black" value="residente">
-              Residente
-            </option>
-            <option className="text-black" value="propietario">
-              Propietario
-            </option>
-            <option className="text-black" value="trabajador">
-              Trabajador
-            </option>
-            <option className="text-black" value="visitante">
-              Visitante
-            </option>
-            <option className="text-black" value="proveedor">
-              Proveedor
-            </option>
-          </select>
-        </div>
+              <label className="block mb-2">
+                Apellido:
+                <input
+                  type="text"
+                  name="apellido"
+                  value={formData.apellido}
+                  onChange={handleInputChange}
+                  className="border rounded px-3 py-1 w-full"
+                  required
+                />
+              </label>
 
-        <div className="mt-6">
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Registrar
-          </button>
-        </div>
-      </form>
+              <label className="block mb-4">
+                DNI:
+                <input
+                  type="text"
+                  name="dni"
+                  value={formData.dni}
+                  onChange={handleInputChange}
+                  className="border rounded px-3 py-1 w-full"
+                  required
+                />
+              </label>
 
-      {/* QR oculto para captura */}
-      <div
-        style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}
-        ref={qrRef}
-      >
-        {uidGenerado && <QRCodeCanvas value={uidGenerado} size={200} />}
-      </div>
-
-      {/* Mostrar QR al usuario */}
-      {qrUrl && (
-        <div className="flex justify-center mt-6">
-          <img src={qrUrl} alt="Código QR" width={200} />
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingPersona(null)}
+                  className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </main>

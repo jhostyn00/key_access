@@ -7,7 +7,6 @@ import html2canvas from 'html2canvas';
 import HeaderDashboard from '@/app/components/HeaderDashboard';
 
 export default function DashboardPage() {
-
   const qrRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -38,6 +37,7 @@ export default function DashboardPage() {
   const validarTelefono = (telefono) =>
     /^9\d{8}$/.test(telefono) || /^[0-9]{7}$/.test(telefono);
 
+  // ------------------ FETCH DATOS ------------------
   useEffect(() => {
     const fetchData = async () => {
       const { data: departamentos } = await supabase
@@ -57,6 +57,7 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
+  // ------------------ HANDLE CHANGES ------------------
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -64,198 +65,185 @@ export default function DashboardPage() {
     }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setMessage('');
-  setQrUrl('');
-  setUidGenerado('');
+  // ------------------ HANDLE SUBMIT ------------------
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setQrUrl('');
+    setUidGenerado('');
 
-  if (!validarDNI(formData.dni)) {
-    setMessage('❌ DNI inválido. Debe tener exactamente 8 dígitos.');
-    return;
-  }
-
-  if (formData.telefono && !validarTelefono(formData.telefono)) {
-    setMessage(
-      '❌ Teléfono inválido. Debe tener 7 dígitos (fijo) o 9 dígitos empezando en 9 (celular).'
-    );
-    return;
-  }
-
-  const uidBase =
-    formData.tipo_persona.substring(0, 3).toUpperCase() +
-    '-' +
-    Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, '0');
-  const uidGeneradoValue = `https://tusitio.com/p/${uidBase}`;
-
-  setUidGenerado(uidGeneradoValue);
-
-  try {
-    // Esperar a que el QR se renderice (puedes usar un pequeño delay o await next tick)
-    await new Promise((r) => setTimeout(r, 500));
-
-    // Capturar QR como imagen usando html2canvas
-    const canvas = await html2canvas(qrRef.current);
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', 0.95)
-    );
-
-    const file = new File([blob], `${formData.dni}_qr.jpg`, {
-      type: 'image/jpeg',
-    });
-
-    // Subir a Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('qrs')
-      .upload(`qrs/${formData.dni}_qr.jpg`, file, { upsert: true });
-
-    if (uploadError) throw uploadError;
-
-    // Obtener URL pública
-    const { data: urlData } = supabase.storage
-      .from('qrs')
-      .getPublicUrl(`qrs/${formData.dni}_qr.jpg`);
-
-    const publicUrl = urlData.publicUrl;
-    setQrUrl(publicUrl);
-
-    // Enviar QR por WhatsApp
-if (formData.telefono && publicUrl) {
-  try {
-    const telefonoLimpio = formData.telefono.replace(/\D/g, '');
-
-    const res = await fetch('/api/enviar-whatsapp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        telefono: telefonoLimpio,
-        qrUrl: publicUrl,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      console.error('❌ Error al enviar QR por WhatsApp:', data.error);
-    } else {
-      console.log('✅ QR enviado por WhatsApp:', data.sid);
-    }
-  } catch (err) {
-    console.error('❌ Error al llamar API de WhatsApp:', err);
-  }
-}
-
-
-    // Insertar persona con uid y url del qr en un solo insert
-    const { data: personaData, error: personaError } = await supabase
-      .from('persona')
-      .insert({
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        dni: formData.dni,
-        tipo_persona: formData.tipo_persona,
-        uid_tarjeta: uidGeneradoValue,
-        qr_url: publicUrl,
-        rol: 3,
-      })
-      .select()
-      .single();
-
-    if (personaError) {
-      setMessage('Error al registrar persona');
+    if (!validarDNI(formData.dni)) {
+      setMessage('❌ DNI inválido. Debe tener exactamente 8 dígitos.');
       return;
     }
 
-    const id_persona = personaData.id_persona;
-    let errorEspecifico = null;
-
-    // Insertar en tabla específica según tipo_persona (igual que antes)
-    switch (formData.tipo_persona) {
-      case 'residente':
-        ({ error: errorEspecifico } = await supabase
-          .from('residente')
-          .insert({
-            id_residente: id_persona,
-            id_departamento: parseInt(formData.id_departamento),
-            telefono: formData.telefono,
-          }));
-        break;
-
-      case 'propietario':
-        ({ error: errorEspecifico } = await supabase
-          .from('propietario')
-          .insert({
-            id_propietario: id_persona,
-            id_edificio: parseInt(formData.id_edificio),
-            telefono: formData.telefono,
-          }));
-        break;
-
-      case 'trabajador':
-        ({ error: errorEspecifico } = await supabase
-          .from('trabajador')
-          .insert({
-            id_trabajador: id_persona,
-            cargo: formData.cargo,
-            turno: formData.turno,
-          }));
-        break;
-
-      case 'visitante':
-        ({ error: errorEspecifico } = await supabase
-          .from('visitante')
-          .insert({
-            id_visitante: id_persona,
-            motivo_visita: formData.motivo_visita,
-            id_residente_visitado: parseInt(formData.id_residente_visitado),
-          }));
-        break;
-
-      case 'proveedor':
-        ({ error: errorEspecifico } = await supabase
-          .from('proveedor')
-          .insert({
-            id_proveedor: id_persona,
-            empresa: formData.empresa,
-            descripcion_producto: formData.descripcion_producto,
-            id_residente_destino: parseInt(formData.id_residente_visitado),
-          }));
-        break;
-    }
-
-    if (errorEspecifico) {
-      console.error('Error tabla específica:', errorEspecifico);
-      setMessage('Persona creada, pero error en tabla específica');
+    if (formData.telefono && !validarTelefono(formData.telefono)) {
+      setMessage(
+        '❌ Teléfono inválido. Debe tener 7 dígitos (fijo) o 9 dígitos empezando en 9 (celular).'
+      );
       return;
     }
 
-    setMessage('✅ Persona registrada con código QR subido');
-    setFormData({
-      nombre: '',
-      apellido: '',
-      dni: '',
-      telefono: '',
-      tipo_persona: '',
-      id_departamento: '',
-      id_edificio: '',
-      cargo: '',
-      turno: '',
-      motivo_visita: '',
-      id_residente_visitado: '',
-      empresa: '',
-      descripcion_producto: '',
-    });
-  } catch (error) {
-    console.error(error);
-    setMessage('❌ Error al subir QR o registrar persona');
-  }
-};
+    const uidBase =
+      formData.tipo_persona.substring(0, 3).toUpperCase() +
+      '-' +
+      Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const uidGeneradoValue = `
+Nombre: ${formData.nombre}
+Apellido: ${formData.apellido}
+DNI: ${formData.dni}
+Tipo de Persona: ${formData.tipo_persona}
+${formData.telefono ? `Teléfono: ${formData.telefono}` : ''}
+${formData.cargo ? `Cargo: ${formData.cargo}` : ''}
+${formData.turno ? `Turno: ${formData.turno}` : ''}
+${formData.motivo_visita ? `Motivo Visita: ${formData.motivo_visita}` : ''}
+${formData.empresa ? `Empresa: ${formData.empresa}` : ''}
+${formData.descripcion_producto ? `Producto: ${formData.descripcion_producto}` : ''}
+`.trim();
 
+    setUidGenerado(uidGeneradoValue);
+
+    try {
+      // Esperar a que el QR se renderice
+      await new Promise((r) => setTimeout(r, 500));
+
+      // Capturar QR como imagen
+      const canvas = await html2canvas(qrRef.current);
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.95)
+      );
+      const file = new File([blob], `${formData.dni}_qr.jpg`, {
+        type: 'image/jpeg',
+      });
+
+      // Subir QR a Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('qrs')
+        .upload(`qrs/${formData.dni}_qr.jpg`, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('qrs')
+        .getPublicUrl(`qrs/${formData.dni}_qr.jpg`);
+      const publicUrl = urlData.publicUrl;
+      setQrUrl(publicUrl);
+
+      // Insertar persona
+      const { data: personaData, error: personaError } = await supabase
+        .from('persona')
+        .insert({
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          dni: formData.dni,
+          tipo_persona: formData.tipo_persona,
+          uid_tarjeta: uidGeneradoValue,
+          qr_url: publicUrl,
+          rol: 3,
+        })
+        .select()
+        .single();
+
+      if (personaError) {
+        setMessage('Error al registrar persona');
+        return;
+      }
+
+      const id_persona = personaData.id_persona;
+      let errorEspecifico = null;
+
+      // Insertar en tabla específica según tipo_persona
+      switch (formData.tipo_persona) {
+        case 'residente':
+          ({ error: errorEspecifico } = await supabase
+            .from('residente')
+            .insert({
+              id_residente: id_persona,
+              id_departamento: parseInt(formData.id_departamento),
+              telefono: formData.telefono,
+            }));
+          break;
+
+        case 'propietario':
+          ({ error: errorEspecifico } = await supabase
+            .from('propietario')
+            .insert({
+              id_propietario: id_persona,
+              id_edificio: parseInt(formData.id_edificio),
+              telefono: formData.telefono,
+            }));
+          break;
+
+        case 'trabajador':
+          ({ error: errorEspecifico } = await supabase
+            .from('trabajador')
+            .insert({
+              id_trabajador: id_persona,
+              cargo: formData.cargo,
+              turno: formData.turno,
+            }));
+          break;
+
+        case 'visitante':
+          ({ error: errorEspecifico } = await supabase
+            .from('visitante')
+            .insert({
+              id_visitante: id_persona,
+              motivo_visita: formData.motivo_visita,
+              id_residente_visitado: parseInt(
+                formData.id_residente_visitado
+              ),
+            }));
+          break;
+
+        case 'proveedor':
+          ({ error: errorEspecifico } = await supabase
+            .from('proveedor')
+            .insert({
+              id_proveedor: id_persona,
+              empresa: formData.empresa,
+              descripcion_producto: formData.descripcion_producto,
+              id_residente_destino: parseInt(
+                formData.id_residente_visitado
+              ),
+            }));
+          break;
+      }
+
+      if (errorEspecifico) {
+        console.error('Error tabla específica:', errorEspecifico);
+        setMessage('Persona creada, pero error en tabla específica');
+        return;
+      }
+
+      setMessage('✅ Persona registrada con código QR subido');
+
+      // Limpiar formulario
+      setFormData({
+        nombre: '',
+        apellido: '',
+        dni: '',
+        telefono: '',
+        tipo_persona: '',
+        id_departamento: '',
+        id_edificio: '',
+        cargo: '',
+        turno: '',
+        motivo_visita: '',
+        id_residente_visitado: '',
+        empresa: '',
+        descripcion_producto: '',
+      });
+    } catch (error) {
+      console.error(error);
+      setMessage('❌ Error al subir QR o registrar persona');
+    }
+  };
 
   return (
     <main className="bg-gradient-to-b from-gray-100 to-gray-500 min-h-screen">
       <HeaderDashboard />
+
       <form
         onSubmit={handleSubmit}
         className="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-lg mt-10"
@@ -263,6 +251,7 @@ if (formData.telefono && publicUrl) {
         <h1 className="text-center text-3xl font-bold text-gray-800">
           Registrar Persona
         </h1>
+
         {message && (
           <p className="text-center mt-4 font-semibold text-green-600">
             {message}
@@ -270,6 +259,7 @@ if (formData.telefono && publicUrl) {
         )}
 
         <div className="mt-6 flex flex-col gap-4">
+          {/* Campos generales */}
           <label className="text-gray-700">Nombre</label>
           <input
             id="nombre"
@@ -308,26 +298,15 @@ if (formData.telefono && publicUrl) {
             required
             className="border-2 p-2 rounded text-black"
           >
-            <option className="text-black" value="">
-              Seleccionar...
-            </option>
-            <option className="text-black" value="residente">
-              Residente
-            </option>
-            <option className="text-black" value="propietario">
-              Propietario
-            </option>
-            <option className="text-black" value="trabajador">
-              Trabajador
-            </option>
-            <option className="text-black" value="visitante">
-              Visitante
-            </option>
-            <option className="text-black" value="proveedor">
-              Proveedor
-            </option>
+            <option value="">Seleccionar...</option>
+            <option value="residente">Residente</option>
+            <option value="propietario">Propietario</option>
+            <option value="trabajador">Trabajador</option>
+            <option value="visitante">Visitante</option>
+            <option value="proveedor">Proveedor</option>
           </select>
 
+          {/* Campos condicionales según tipo_persona */}
           {(formData.tipo_persona === 'residente' ||
             formData.tipo_persona === 'propietario') && (
             <>
@@ -340,12 +319,9 @@ if (formData.telefono && publicUrl) {
                     onChange={handleChange}
                     className="border-2 p-2 rounded text-black"
                   >
-                    <option className="text-black" value="">
-                      Seleccionar...
-                    </option>
+                    <option value="">Seleccionar...</option>
                     {departamentos.map((dep) => (
                       <option
-                        className="text-black"
                         key={dep.id_departamento}
                         value={dep.id_departamento}
                       >
@@ -378,15 +354,9 @@ if (formData.telefono && publicUrl) {
                 onChange={handleChange}
                 className="border-2 p-2 rounded text-black"
               >
-                <option className="text-black" value="">
-                  Seleccionar...
-                </option>
+                <option value="">Seleccionar...</option>
                 {edificios.map((ed) => (
-                  <option
-                    className="text-black"
-                    key={ed.id_edificio}
-                    value={ed.id_edificio}
-                  >
+                  <option key={ed.id_edificio} value={ed.id_edificio}>
                     {ed.nombre_edificio}
                   </option>
                 ))}
@@ -403,6 +373,7 @@ if (formData.telefono && publicUrl) {
                 onChange={handleChange}
                 className="border-2 p-2 rounded text-black"
               />
+
               <label className="text-gray-700">Turno</label>
               <input
                 id="turno"
@@ -423,15 +394,9 @@ if (formData.telefono && publicUrl) {
                 onChange={handleChange}
                 className="border-2 p-2 rounded text-black"
               >
-                <option className="text-black" value="">
-                  Seleccionar...
-                </option>
+                <option value="">Seleccionar...</option>
                 {residentes.map((r) => (
-                  <option
-                    className="text-black"
-                    key={r.id_residente}
-                    value={r.id_residente}
-                  >
+                  <option key={r.id_residente} value={r.id_residente}>
                     {r.persona?.nombre} {r.persona?.apellido}
                   </option>
                 ))}
@@ -460,6 +425,7 @@ if (formData.telefono && publicUrl) {
                 onChange={handleChange}
                 className="border-2 p-2 rounded text-black"
               />
+
               <label className="text-gray-700">Descripción del producto</label>
               <input
                 id="descripcion_producto"
@@ -481,7 +447,7 @@ if (formData.telefono && publicUrl) {
         </div>
       </form>
 
-      {/* QR oculto para capturar imagen */}
+      {/* QR oculto para captura */}
       <div
         style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}
         ref={qrRef}
@@ -491,10 +457,25 @@ if (formData.telefono && publicUrl) {
 
       {/* Mostrar QR al usuario */}
       {qrUrl && (
-        <div className="flex justify-center mt-6">
-          <img src={qrUrl} alt="Código QR" width={200} />
-        </div>
-      )}
+  <div className="flex flex-col items-center mt-6 gap-4">
+    {/* Vista previa del QR */}
+    <img src={qrUrl} alt="Código QR" width={200} />
+
+    {/* Botón para enviar el link por WhatsApp */}
+    <a
+      href={`https://wa.me/51${formData.telefono.replace(/\D/g, '')}?text=${encodeURIComponent(
+        `Hola ${formData.nombre}, este es tu código QR de acceso: ${qrUrl}`
+      )}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+    >
+      Enviar QR por WhatsApp
+    </a>
+  </div>
+)}
+
+
     </main>
   );
 }
