@@ -121,6 +121,32 @@ const handleSubmit = async (e) => {
     const publicUrl = urlData.publicUrl;
     setQrUrl(publicUrl);
 
+    // Enviar QR por WhatsApp
+if (formData.telefono && publicUrl) {
+  try {
+    const telefonoLimpio = formData.telefono.replace(/\D/g, '');
+
+    const res = await fetch('/api/enviar-whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telefono: telefonoLimpio,
+        qrUrl: publicUrl,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.error('❌ Error al enviar QR por WhatsApp:', data.error);
+    } else {
+      console.log('✅ QR enviado por WhatsApp:', data.sid);
+    }
+  } catch (err) {
+    console.error('❌ Error al llamar API de WhatsApp:', err);
+  }
+}
+
+
     // Insertar persona con uid y url del qr en un solo insert
     const { data: personaData, error: personaError } = await supabase
       .from('persona')
