@@ -74,55 +74,6 @@ const handleSubmit = async (e) => {
     setMessage('❌ DNI inválido. Debe tener exactamente 8 dígitos.');
     return;
   }
-<<<<<<< HEAD
-
-  if (formData.telefono && !validarTelefono(formData.telefono)) {
-    setMessage(
-      '❌ Teléfono inválido. Debe tener 7 dígitos (fijo) o 9 dígitos empezando en 9 (celular).'
-    );
-    return;
-  }
-
-  const uidBase =
-    formData.tipo_persona.substring(0, 3).toUpperCase() +
-    '-' +
-    Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, '0');
-  const uidGeneradoValue = `https://tusitio.com/p/${uidBase}`;
-
-  setUidGenerado(uidGeneradoValue);
-
-  try {
-    // Esperar a que el QR se renderice (puedes usar un pequeño delay o await next tick)
-    await new Promise((r) => setTimeout(r, 500));
-
-    // Capturar QR como imagen usando html2canvas
-    const canvas = await html2canvas(qrRef.current);
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', 0.95)
-    );
-
-    const file = new File([blob], `${formData.dni}_qr.jpg`, {
-      type: 'image/jpeg',
-    });
-
-    // Subir a Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('qrs')
-      .upload(`qrs/${formData.dni}_qr.jpg`, file, { upsert: true });
-
-    if (uploadError) throw uploadError;
-
-    // Obtener URL pública
-    const { data: urlData } = supabase.storage
-      .from('qrs')
-      .getPublicUrl(`qrs/${formData.dni}_qr.jpg`);
-
-    const publicUrl = urlData.publicUrl;
-    setQrUrl(publicUrl);
-
-=======
 
   if (formData.telefono && !validarTelefono(formData.telefono)) {
     setMessage(
@@ -196,7 +147,6 @@ if (formData.telefono && publicUrl) {
 }
 
 
->>>>>>> origin/melany
     // Insertar persona con uid y url del qr en un solo insert
     const { data: personaData, error: personaError } = await supabase
       .from('persona')
