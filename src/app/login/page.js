@@ -50,7 +50,7 @@ const [loadingModal, setLoadingModal] = useState(false);
 
 
 
- if (contrasena !== data.uid_tarjeta) {
+ if (contrasena !== data.clave) {
 
   alert('Contraseña incorrecta');
 
