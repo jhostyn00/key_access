@@ -13,6 +13,8 @@ export default function DashboardPage() {
     nombre: '',
     apellido: '',
     dni: '',
+    correo: '',
+    clave: '',
     telefono: '',
     tipo_persona: '',
     id_departamento: '',
@@ -92,6 +94,7 @@ export default function DashboardPage() {
 Nombre: ${formData.nombre}
 Apellido: ${formData.apellido}
 DNI: ${formData.dni}
+Correo: ${formData.correo}
 Tipo de Persona: ${formData.tipo_persona}
 ${formData.telefono ? `Teléfono: ${formData.telefono}` : ''}
 ${formData.cargo ? `Cargo: ${formData.cargo}` : ''}
@@ -136,18 +139,23 @@ ${formData.descripcion_producto ? `Producto: ${formData.descripcion_producto}` :
           nombre: formData.nombre,
           apellido: formData.apellido,
           dni: formData.dni,
+          
           tipo_persona: formData.tipo_persona,
           uid_tarjeta: uidGeneradoValue,
           qr_url: publicUrl,
           rol: 3,
+          correo: formData.correo,
+          clave: formData.clave,
         })
         .select()
         .single();
 
       if (personaError) {
-        setMessage('Error al registrar persona');
-        return;
-      }
+  console.error('❌ Error al insertar persona:', personaError);
+  setMessage('❌ Error al registrar persona: ' + personaError.message);
+  return;
+}
+
 
       const id_persona = personaData.id_persona;
       let errorEspecifico = null;
@@ -223,6 +231,8 @@ ${formData.descripcion_producto ? `Producto: ${formData.descripcion_producto}` :
         nombre: '',
         apellido: '',
         dni: '',
+        correo: '',
+        clave: '',
         telefono: '',
         tipo_persona: '',
         id_departamento: '',
@@ -288,6 +298,23 @@ ${formData.descripcion_producto ? `Producto: ${formData.descripcion_producto}` :
             maxLength={8}
             inputMode="numeric"
             pattern="[0-9]{8}"
+          />
+          <label className="text-gray-700">Correo</label>
+          <input
+            id="correo"
+            value={formData.correo}
+            onChange={handleChange}
+            required
+            className="border-2 p-2 rounded text-black"
+          />
+          <label className="text-gray-700">Clave</label>
+          <input
+            id="clave"
+            type='password'
+            value={formData.clave}
+            onChange={handleChange}
+            required
+            className="border-2 p-2 rounded text-black"
           />
 
           <label className="text-gray-700">Tipo de Persona</label>
