@@ -29,70 +29,33 @@ export default function LoginPage() {
       return;
     }
 
+    // Guardamos el id_persona en el localStorage
+    localStorage.setItem('user_id', data.id_persona); 
+
     alert('Bienvenido, ' + data.nombre);
-    router.push('/dashboard');
+
+    // Redirigir al historial de accesos
+    router.push('/historial'); // Cambia esta ruta si la página de historial está en otro lugar
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-400 flex items-center justify-center font-[Outfit] px-6 py-12">
       <div className="flex flex-col md:flex-row items-center gap-8 backdrop-blur-md bg-white/10 p-8 rounded-3xl shadow-lg max-w-4xl w-full">
-
-        {/* Login Box */}
-        <form
-          onSubmit={handleLogin}
-          className="w-full max-w-sm text-white bg-white/20 p-6 rounded-2xl backdrop-blur-xl"
-        >
+        <form onSubmit={handleLogin} className="w-full max-w-sm text-white bg-white/20 p-6 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-semibold">INGRESA</h2>
-            <a
-              href="/dashboard"
-              className="text-sm text-white/80 hover:text-white transition"
-            >
+            <a href="/dashboard" className="text-sm text-white/80 hover:text-white transition">
               REGISTRARSE
             </a>
           </div>
-
           <label className="text-sm block mb-1">DNI</label>
-          <input
-            type="text"
-            placeholder="Ingrese su DNI"
-            value={usuario}
-            onChange={(e) => setUsuario(e.target.value)}
-            className="w-full mb-4 p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            required
-          />
-
+          <input type="text" placeholder="Ingrese su DNI" value={usuario} onChange={(e) => setUsuario(e.target.value)} className="w-full mb-4 p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300" required />
           <label className="text-sm block mb-1">Contraseña</label>
-          <input
-            type="password"
-            placeholder="Ingrese su contraseña"
-            value={contrasena}
-            onChange={(e) => setContrasena(e.target.value)}
-            className="w-full mb-4 p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-            required
-          />
-
-          <div className="flex justify-between items-center mb-4">
-            <button
-              type="button"
-              className="text-xs text-white/80 hover:underline"
-            >
-              I forgot
-            </button>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-white/30 hover:bg-white/40 transition-colors text-white py-3 rounded-full font-semibold text-lg"
-          >
+          <input type="password" placeholder="Ingrese su contraseña" value={contrasena} onChange={(e) => setContrasena(e.target.value)} className="w-full mb-4 p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300" required />
+          <button type="submit" className="w-full bg-white/30 hover:bg-white/40 transition-colors text-white py-3 rounded-full font-semibold text-lg">
             Entrar →
           </button>
-
-          <p className="text-xs text-center mt-6 text-white/70">
-            Click here for more info.
-          </p>
         </form>
-
         {/* Calendar Box */}
         <div className="w-full max-w-sm text-black bg-white/30 backdrop-blur-xl rounded-2xl p-6 flex flex-col items-center justify-between">
           <div className="text-center mb-4">

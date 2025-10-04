@@ -3,14 +3,21 @@
 import { useEffect, useState } from 'react';
 import supabase from '@/lib/supabaseClient';
 
-function Accesos() {
+function Historial() {
   const [accesos, setAccesos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Consulta para obtener datos de acceso y el nombre y apellido de la persona
+        // Obtener el id_persona desde localStorage
+        const userId = localStorage.getItem('user_id');
+        if (!userId) {
+          alert("No se encontró el usuario. Por favor, inicie sesión.");
+          return;
+        }
+
+        // Consulta para obtener datos de acceso de la persona logueada
         const { data, error } = await supabase
           .from('acceso')
           .select(`
@@ -19,15 +26,15 @@ function Accesos() {
             fecha_hora,
             id_autorizador,
             observaciones,
-            persona:id_persona (nombre, apellido)  // Traemos nombre y apellido
+            persona:id_persona (nombre, apellido)
           `)
+          .eq('id_persona', userId)  // Filtramos por el id_persona del usuario logueado
           .order('fecha_hora', { ascending: false });
 
         if (error) {
-          throw new Error(error.message); // Lanzamos un error detallado si ocurre un error
+          throw new Error(error.message);
         }
 
-        console.log('Datos de acceso con nombre y apellido:', data); // Verifica los datos obtenidos
         setAccesos(data);
       } catch (err) {
         console.error('Error al obtener accesos:', err.message || err);
@@ -89,4 +96,4 @@ function Accesos() {
   );
 }
 
-export default Accesos;
+export default Historial;
