@@ -6,6 +6,9 @@ import supabase from '@/lib/supabaseClient';
 import html2canvas from 'html2canvas';
 import HeaderDashboard from '@/app/components/HeaderDashboard';
 
+
+
+
 export default function DashboardPage() {
   const qrRef = useRef(null);
 
@@ -85,26 +88,15 @@ export default function DashboardPage() {
       );
       return;
     }
+const uidBase =
+  formData.tipo_persona.substring(0, 3).toUpperCase() +
+  '-' +
+  Math.floor(Math.random() * 10000).toString().padStart(4, '0');
 
-    const uidBase =
-      formData.tipo_persona.substring(0, 3).toUpperCase() +
-      '-' +
-      Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const uidGeneradoValue = `
-Nombre: ${formData.nombre}
-Apellido: ${formData.apellido}
-DNI: ${formData.dni}
-Correo: ${formData.correo}
-Tipo de Persona: ${formData.tipo_persona}
-${formData.telefono ? `Teléfono: ${formData.telefono}` : ''}
-${formData.cargo ? `Cargo: ${formData.cargo}` : ''}
-${formData.turno ? `Turno: ${formData.turno}` : ''}
-${formData.motivo_visita ? `Motivo Visita: ${formData.motivo_visita}` : ''}
-${formData.empresa ? `Empresa: ${formData.empresa}` : ''}
-${formData.descripcion_producto ? `Producto: ${formData.descripcion_producto}` : ''}
-`.trim();
+const baseURL = 'http://127.0.0.1:3000'; // 👈 cambia aquí
+const uidGeneradoValue = `${baseURL}/registrar-acceso?uid=${uidBase}`;
+setUidGenerado(uidGeneradoValue);
 
-    setUidGenerado(uidGeneradoValue);
 
     try {
       // Esperar a que el QR se renderice
@@ -141,7 +133,7 @@ ${formData.descripcion_producto ? `Producto: ${formData.descripcion_producto}` :
           dni: formData.dni,
           
           tipo_persona: formData.tipo_persona,
-          uid_tarjeta: uidGeneradoValue,
+          uid_tarjeta: uidBase,
           qr_url: publicUrl,
           rol: 3,
           correo: formData.correo,
@@ -506,3 +498,4 @@ ${formData.descripcion_producto ? `Producto: ${formData.descripcion_producto}` :
     </main>
   );
 }
+
