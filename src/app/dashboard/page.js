@@ -1,6 +1,6 @@
 'use client';
 
-import { QRCodeCanvas } from 'qrcode.react';
+ //import { QRCodeCanvas } from 'qrcode.react';
 import { useEffect, useState } from 'react';
 import supabase from '@/lib/supabaseClient';
 import HeaderDashboard from '@/app/components/HeaderDashboard';
