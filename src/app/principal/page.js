@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react';
 import supabase from '@/lib/supabaseClient';
 
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+
 function Accesos() {
   const [user, setUser] = useState({ id: '1234' });
   const [rol, setRol] = useState('trabajador');
@@ -15,10 +21,8 @@ function Accesos() {
     rol: ''
   });
 
-  // Nuevo estado para la confirmación de baja
   const [personaParaBaja, setPersonaParaBaja] = useState(null);
 
-  // Obtener accesos desde Supabase
   useEffect(() => {
     const fetchAccesos = async () => {
       let query = supabase.from('persona').select(`
@@ -55,7 +59,6 @@ function Accesos() {
     }
   }, [user, filtro]);
 
-  // Editar una persona (abrir modal) - solo setear rol
   const handleEdit = (persona) => {
     setEditandoPersona(persona);
     setFormData({
@@ -63,7 +66,6 @@ function Accesos() {
     });
   };
 
-  // Guardar cambios en Supabase - solo actualiza rol
   const handleGuardarEdicion = async () => {
     const { error } = await supabase
       .from('persona')
@@ -77,21 +79,19 @@ function Accesos() {
 
     setEditandoPersona(null);
     setFormData({ rol: '' });
-    setFiltro(filtro); // Refrescar lista
+    setFiltro(filtro);
   };
 
-  // Confirmar baja: abrir modal confirmación
   const handleConfirmarBaja = (persona) => {
     setPersonaParaBaja(persona);
   };
 
-  // Baja lógica: quitar rol (poner rol a "0")
   const handleDelete = async () => {
     if (!personaParaBaja) return;
 
     const { error } = await supabase
       .from('persona')
-      .update({ rol: '0' }) // rol 0 = eliminado
+      .update({ rol: '0' })
       .eq('id_persona', personaParaBaja.id_persona);
 
     if (error) {
@@ -100,20 +100,19 @@ function Accesos() {
     }
 
     setPersonaParaBaja(null);
-    setFiltro(filtro); // Refrescar lista
+    setFiltro(filtro);
   };
 
-  // Filtrado local por búsqueda
   const accesosFiltrados = accesos.filter((persona) => {
     const termino = busqueda.toLowerCase();
     return (
       persona.nombre.toLowerCase().includes(termino) ||
       persona.apellido.toLowerCase().includes(termino) ||
-      persona.dni.toLowerCase().includes(termino)
+      persona.dni.toLowerCase().includes(termino) ||
+      persona.id_persona.toString().includes(termino) // Habilitar búsqueda por ID
     );
   });
 
-  // Para mostrar el texto correspondiente al rol
   const rolTexto = (rol) => {
     switch (rol) {
       case '1':
@@ -129,16 +128,152 @@ function Accesos() {
     }
   };
 
+  // Exportar PDF usando jsPDF y autotable con estilo mejorado
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+
+    const headers = [['ID Persona', 'Nombre', 'Apellido', 'DNI', 'Tipo Persona', 'Rol']];
+
+    const data = accesosFiltrados.map(p => [
+      p.id_persona,
+      p.nombre,
+      p.apellido,
+      p.dni,
+      p.tipo_persona,
+      rolTexto(p.rol),
+    ]);
+
+    // Agregar título
+    doc.setFontSize(18);
+    doc.setTextColor('#3F51B5'); // azul
+    doc.text('Listado de Accesos', 14, 15);
+
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: 25,
+      styles: {
+        fontSize: 9,
+        cellPadding: 4,
+        fontStyle: 'normal',
+        textColor: '#333',
+        halign: 'left',
+        valign: 'middle',
+        lineColor: [220, 220, 220],
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: '#3F51B5',
+        textColor: '#FFF',
+        fontStyle: 'bold',
+        halign: 'center',
+      },
+      alternateRowStyles: {
+        fillColor: '#f5f5f5',
+      },
+      margin: { left: 14, right: 14 },
+      tableLineWidth: 0.15,
+      tableLineColor: 200,
+    });
+
+    doc.save('accesos.pdf');
+  };
+
+  // Exportar Excel con estilos mejorados
+  const exportarExcel = () => {
+    const wsData = [
+      ['ID Persona', 'Nombre', 'Apellido', 'DNI', 'Tipo Persona', 'Rol'],
+      ...accesosFiltrados.map(p => [
+        p.id_persona,
+        p.nombre,
+        p.apellido,
+        p.dni,
+        p.tipo_persona,
+        rolTexto(p.rol),
+      ])
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Ajustar el ancho de las columnas
+    const maxLengths = wsData[0].map((_, colIndex) => {
+      return Math.max(...wsData.map(row => (row[colIndex] ? row[colIndex].toString().length : 0)));
+    });
+    ws['!cols'] = maxLengths.map(len => ({ width: Math.min(Math.max(len + 5, 15), 30) }));
+
+    // Estilos de celdas para el encabezado
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+      if (!ws[cellAddress]) continue;
+
+      ws[cellAddress].s = {
+        fill: { fgColor: { rgb: "3F51B5" } }, // Azul
+        font: { color: { rgb: "FFFFFF" }, bold: true, sz: 12 },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: {
+          top: { style: "thin", color: { rgb: "000000" } },
+          bottom: { style: "thin", color: { rgb: "000000" } },
+          left: { style: "thin", color: { rgb: "000000" } },
+          right: { style: "thin", color: { rgb: "000000" } },
+        },
+      };
+    }
+
+    // Aplicar color alternado en las filas de datos
+    for (let R = 1; R <= range.e.r; ++R) {
+      const fillColor = R % 2 === 0 ? "F2F2F2" : "FFFFFF"; // Color alternado
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!ws[cellAddress]) continue;
+
+        ws[cellAddress].s = {
+          fill: { fgColor: { rgb: fillColor } },
+          font: { color: { rgb: "000000" }, sz: 11 },
+          alignment: { horizontal: "left", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } },
+          },
+        };
+      }
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Accesos');
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
+
+    saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'accesos.xlsx');
+  };
+
   return (
     <div className="bg-gray-900 text-white p-6">
       <h2 className="text-2xl font-bold mb-4">Accesos (Rol simulado: {rol})</h2>
 
-      {/* 🔍 Filtros horizontales */}
+      {/* Botones PDF y Excel */}
+      <div className="mb-4 flex gap-4">
+        <button
+          onClick={exportarPDF}
+          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md"
+        >
+          Descargar PDF
+        </button>
+        <button
+          onClick={exportarExcel}
+          className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md"
+        >
+          Descargar Excel
+        </button>
+      </div>
+
+      {/* Filtros y tabla */}
       <div className="mb-6 flex flex-wrap items-end gap-4">
-        {/* Barra de búsqueda */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
-            Buscar por nombre, apellido o DNI:
+            Buscar por nombre, apellido, DNI o ID:
           </label>
           <input
             type="text"
@@ -149,7 +284,6 @@ function Accesos() {
           />
         </div>
 
-        {/* Filtro por rol */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">Filtrar por rol:</label>
           <select
@@ -166,7 +300,6 @@ function Accesos() {
         </div>
       </div>
 
-      {/* Tabla */}
       <table className="min-w-full border-collapse border border-gray-600">
         <thead>
           <tr className="bg-indigo-700">
@@ -222,7 +355,6 @@ function Accesos() {
         </tbody>
       </table>
 
-      {/* 🧾 Modal de edición */}
       {editandoPersona && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-md shadow-md w-full max-w-md">
@@ -259,7 +391,6 @@ function Accesos() {
         </div>
       )}
 
-      {/* Modal confirmación para dar de baja */}
       {personaParaBaja && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-md shadow-md w-full max-w-md text-white">
