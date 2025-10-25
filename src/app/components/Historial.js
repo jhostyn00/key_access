@@ -60,7 +60,7 @@ function Historial() {
   }
 
   return (
-    <div className="bg-gray-900 text-white p-6">
+    <div className="bg-[#7b93a7] text-white p-6">
       <h2 className="text-2xl font-bold mb-4">Registros de Acceso</h2>
 
       {loading ? (

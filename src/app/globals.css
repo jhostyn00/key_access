@@ -123,3 +123,25 @@ h1, h2, h3, .titulo {
   75% { transform: translate(40px, -30px); }
   100% { transform: translate(0,0); }
 }
+
+
+.cuadros{
+  background-color: 
+ color-mix(in oklab, var(--color-white) 20%, transparent);
+}
+.link-nav{
+  position: relative;
+}
+
+.link-nav::before{
+  content: '';
+  background-color: white;
+  position: absolute;
+  width: 200px;
+  height: 160%;
+  border-radius: 50%;
+  right: -50%;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: -1;
+}

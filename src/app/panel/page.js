@@ -10,7 +10,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 // Importa aquí los componentes reales de tus módulos
 
-import Dashboard from '@/app/components/HeaderDashboard';
+import Dashboard from '@/app/components/InicioDashboard';
 
 import Registros from '@/app/components/Historial';
 
@@ -18,13 +18,13 @@ import Horarios from '@/app/components/Horarios';
 
 import QR from '@/app/components/MiQR';
 
-import Acceso from '@/app/components/RegistrarAcceso';
+import Administrar from '@/app/components/Principal';
 
 
 
 const Modulo = ({ nombre, Contenido, urlActual }) => (
 
- <div className="modulo bg-white rounded-2xl shadow-2xl p-8 border border-teal-200">
+ <div className="modulo cuadros rounded-2xl shadow-4xl p-8 ">
 
   <h3 className="text-3xl font-bold text-teal-800 mb-4 flex items-center">
 
@@ -86,7 +86,7 @@ const Panel = () => {
 
   qr: QR,
 
-  acceso: Acceso,
+  administrar: Administrar,
 
  };
 
@@ -130,55 +130,27 @@ const Panel = () => {
 
  return (
 
-  <div className="flex h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-emerald-50">
+  <div className="flex h-screen fondo-login">  <div className="circle circle1"></div>
+  <div className="circle circle2"></div>
+  <div className="circle circle3"></div>
+  <div className="circle circle4"></div>
+  <div className="circle circle5"></div> 
 
-   <div className="flex-1 flex flex-col p-6 overflow-hidden">
+  <aside className=" bg-gray-100 w-72 text-black pl-6 py-6 flex flex-col">
 
-    <header className="bg-white rounded-xl shadow-lg p-6 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-
-     <h1 className="text-2xl font-bold text-gray-800">Panel de Control - Módulo: {moduloActivo}</h1>
-
-     <div className="text-sm text-gray-600 bg-teal-50 p-3 rounded-lg w-full sm:w-auto">
-
-      <span className="font-medium">URL Actual:</span> {urlActual}
-
-     </div>
-
-    </header>
-
-    <div className="flex-1 overflow-y-auto">
-
-     <Modulo
-
-      key={moduloActivo}
-
-      nombre={moduloActivo.charAt(0).toUpperCase() + moduloActivo.slice(1)}
-
-      Contenido={ComponenteActivo}
-
-      urlActual={urlActual}
-
-     />
-
-    </div>
-
-   </div>
-
-   <aside className="w-72 bg-gradient-to-b from-teal-600 to-cyan-500 text-black p-6 shadow-2xl flex flex-col">
-
-    <h2 className="text-3xl font-bold mb-8 text-center bg-white bg-opacity-10 rounded-xl py-3">Panel Único</h2>
+    <h2 className="text-3xl font-bold mb-8 text-center bg-opacity-10 rounded-xl py-3">Dashboard</h2>
 
     <nav className="flex-1 flex flex-col space-y-4">
 
      {Object.keys(contenidoModulos).map((mod) => (
 
-      <button
+      <button 
 
        key={mod}
 
        onClick={() => cambiarModulo(mod)}
 
-       className={`flex items-center p-4 text-lg font-semibold rounded-xl
+       className={`link-nav flex items-center p-4 text-lg font-semibold rounded-xl
 
         text-white
 
@@ -217,7 +189,7 @@ const Panel = () => {
   <path d="M12 9h2V8h-2z"/>
 </svg> :
 
-         mod === 'acceso' ? <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" className="bi bi-box-arrow-right" viewBox="0 0 16 16">
+         mod === 'administrar' ? <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" className="bi bi-box-arrow-right" viewBox="0 0 16 16">
   <path fillRule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/>
   <path fillRule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/>
 </svg> : ''}
@@ -233,6 +205,41 @@ const Panel = () => {
     </nav>
 
    </aside>
+
+   <div className="z-4 flex-1 flex flex-col p-6 overflow-hidden rounded-lg mr-6 my-6 
+     border border-white/20 backdrop-blur-md shadow-lg">
+
+    <header className=" rounded-xl shadow-lg p-6 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+
+     <h1 className="text-2xl font-bold text-gray-800">Panel de Control - Módulo: {moduloActivo}</h1>
+
+     <div className="text-sm text-gray-600 bg-teal-50 p-3 rounded-lg w-full sm:w-auto">
+
+      <span className="font-medium">URL Actual:</span> {urlActual}
+
+     </div>
+
+    </header>
+
+    <div className="flex-1 overflow-y-auto">
+
+     <Modulo
+
+      key={moduloActivo}
+
+      nombre={moduloActivo.charAt(0).toUpperCase() + moduloActivo.slice(1)}
+
+      Contenido={ComponenteActivo}
+
+      urlActual={urlActual}
+
+     />
+
+    </div>
+
+   </div>
+
+
 
   </div>
 
