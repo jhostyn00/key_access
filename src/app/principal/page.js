@@ -5,7 +5,6 @@ import supabase from '@/lib/supabaseClient';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
@@ -17,124 +16,136 @@ function Accesos() {
   const [busqueda, setBusqueda] = useState('');
 
   const [editandoPersona, setEditandoPersona] = useState(null);
-  const [formData, setFormData] = useState({
-    rol: ''
-  });
-
+  const [formData, setFormData] = useState({ rol: '' });
   const [personaParaBaja, setPersonaParaBaja] = useState(null);
 
+  // 🔧 FETCH ACCESOS
   useEffect(() => {
     const fetchAccesos = async () => {
-      let query = supabase.from('persona').select(`
-        id_persona,
-        nombre,
-        apellido,
-        dni,
-        tipo_persona,
-        rol
-      `);
+      try {
+        let query = supabase
+          .from('persona')
+          .select(`
+            id_persona,
+            nombre,
+            apellido,
+            dni,
+            tipo_persona,
+            rol
+          `);
 
-      if (filtro) {
-        if (filtro === 'eliminado') {
-          query = query.eq('rol', '0');
+        // Filtros
+        if (filtro) {
+          if (filtro === 'eliminado') {
+            query = query.eq('rol', 0);
+          } else {
+            query = query.eq('rol', Number(filtro));
+          }
         } else {
-          query = query.eq('rol', filtro);
+          query = query.neq('rol', 0);
         }
-      } else {
-        query = query.neq('rol', '0');
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        setAccesos(data || []);
+      } catch (error) {
+        console.error('Error obteniendo accesos:', error.message);
       }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error obteniendo accesos:', error);
-        return;
-      }
-
-      setAccesos(data);
     };
 
-    if (user) {
-      fetchAccesos();
-    }
+    if (user) fetchAccesos();
   }, [user, filtro]);
 
+  // 🧱 Editar rol
   const handleEdit = (persona) => {
     setEditandoPersona(persona);
-    setFormData({
-      rol: persona.rol
-    });
+    setFormData({ rol: persona.rol.toString() });
   };
 
   const handleGuardarEdicion = async () => {
-    const { error } = await supabase
-      .from('persona')
-      .update({ rol: formData.rol })
-      .eq('id_persona', editandoPersona.id_persona);
+    try {
+      const { error } = await supabase
+        .from('persona')
+        .update({ rol: Number(formData.rol) })
+        .eq('id_persona', editandoPersona.id_persona);
 
-    if (error) {
-      console.error('Error al actualizar persona:', error);
-      return;
+      if (error) throw error;
+
+      setEditandoPersona(null);
+      setFormData({ rol: '' });
+      setFiltro(filtro); // refrescar
+    } catch (error) {
+      console.error('Error al actualizar persona:', error.message);
     }
-
-    setEditandoPersona(null);
-    setFormData({ rol: '' });
-    setFiltro(filtro);
   };
 
+  // 🧱 Dar de baja
   const handleConfirmarBaja = (persona) => {
     setPersonaParaBaja(persona);
   };
 
   const handleDelete = async () => {
     if (!personaParaBaja) return;
+    try {
+      const { error } = await supabase
+        .from('persona')
+        .update({ rol: 0 })
+        .eq('id_persona', personaParaBaja.id_persona);
 
-    const { error } = await supabase
-      .from('persona')
-      .update({ rol: '0' })
-      .eq('id_persona', personaParaBaja.id_persona);
-
-    if (error) {
-      console.error('Error al dar de baja persona:', error);
-      return;
+      if (error) throw error;
+      setPersonaParaBaja(null);
+      setFiltro(filtro);
+    } catch (error) {
+      console.error('Error al dar de baja persona:', error.message);
     }
-
-    setPersonaParaBaja(null);
-    setFiltro(filtro);
   };
 
+  // 🧮 Filtro de búsqueda
   const accesosFiltrados = accesos.filter((persona) => {
     const termino = busqueda.toLowerCase();
     return (
-      persona.nombre.toLowerCase().includes(termino) ||
-      persona.apellido.toLowerCase().includes(termino) ||
-      persona.dni.toLowerCase().includes(termino) ||
-      persona.id_persona.toString().includes(termino) // Habilitar búsqueda por ID
+      persona.nombre?.toLowerCase().includes(termino) ||
+      persona.apellido?.toLowerCase().includes(termino) ||
+      persona.dni?.toLowerCase().includes(termino) ||
+      persona.id_persona?.toString().includes(termino)
     );
   });
 
   const rolTexto = (rol) => {
     switch (rol) {
-      case '1':
+      case 1:
         return 'Propietario';
-      case '2':
+      case 2:
         return 'Trabajador';
-      case '3':
+      case 3:
         return 'Residente';
-      case '0':
+      case 0:
         return 'Eliminado';
       default:
         return rol;
     }
   };
 
-  // Exportar PDF usando jsPDF y autotable con estilo mejorado
+  // 📄 PAGINACIÓN
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 10;
+
+  const indiceInicio = (paginaActual - 1) * registrosPorPagina;
+  const indiceFin = indiceInicio + registrosPorPagina;
+  const accesosPaginados = accesosFiltrados.slice(indiceInicio, indiceFin);
+
+  const totalPaginas = Math.ceil(accesosFiltrados.length / registrosPorPagina);
+
+  const irAPagina = (num) => {
+    if (num >= 1 && num <= totalPaginas) setPaginaActual(num);
+  };
+
+  // 📄 Exportar PDF
   const exportarPDF = () => {
     const doc = new jsPDF();
-
     const headers = [['ID Persona', 'Nombre', 'Apellido', 'DNI', 'Tipo Persona', 'Rol']];
-
-    const data = accesosFiltrados.map(p => [
+    const data = accesosFiltrados.map((p) => [
       p.id_persona,
       p.nombre,
       p.apellido,
@@ -143,109 +154,46 @@ function Accesos() {
       rolTexto(p.rol),
     ]);
 
-    // Agregar título
     doc.setFontSize(18);
-    doc.setTextColor('#3F51B5'); // azul
+    doc.setTextColor('#3F51B5');
     doc.text('Listado de Accesos', 14, 15);
 
     autoTable(doc, {
       head: headers,
       body: data,
       startY: 25,
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-        fontStyle: 'normal',
-        textColor: '#333',
-        halign: 'left',
-        valign: 'middle',
-        lineColor: [220, 220, 220],
-        lineWidth: 0.1,
-      },
-      headStyles: {
-        fillColor: '#3F51B5',
-        textColor: '#FFF',
-        fontStyle: 'bold',
-        halign: 'center',
-      },
-      alternateRowStyles: {
-        fillColor: '#f5f5f5',
-      },
-      margin: { left: 14, right: 14 },
-      tableLineWidth: 0.15,
-      tableLineColor: 200,
+      styles: { fontSize: 9, cellPadding: 4, textColor: '#333' },
+      headStyles: { fillColor: '#3F51B5', textColor: '#FFF', halign: 'center' },
+      alternateRowStyles: { fillColor: '#f5f5f5' },
     });
 
     doc.save('accesos.pdf');
   };
 
-  // Exportar Excel con estilos mejorados
+  // 📊 Exportar Excel
   const exportarExcel = () => {
     const wsData = [
       ['ID Persona', 'Nombre', 'Apellido', 'DNI', 'Tipo Persona', 'Rol'],
-      ...accesosFiltrados.map(p => [
+      ...accesosFiltrados.map((p) => [
         p.id_persona,
         p.nombre,
         p.apellido,
         p.dni,
         p.tipo_persona,
         rolTexto(p.rol),
-      ])
+      ]),
     ];
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-    // Ajustar el ancho de las columnas
-    const maxLengths = wsData[0].map((_, colIndex) => {
-      return Math.max(...wsData.map(row => (row[colIndex] ? row[colIndex].toString().length : 0)));
-    });
-    ws['!cols'] = maxLengths.map(len => ({ width: Math.min(Math.max(len + 5, 15), 30) }));
-
-    // Estilos de celdas para el encabezado
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
-      if (!ws[cellAddress]) continue;
-
-      ws[cellAddress].s = {
-        fill: { fgColor: { rgb: "3F51B5" } }, // Azul
-        font: { color: { rgb: "FFFFFF" }, bold: true, sz: 12 },
-        alignment: { horizontal: "center", vertical: "center" },
-        border: {
-          top: { style: "thin", color: { rgb: "000000" } },
-          bottom: { style: "thin", color: { rgb: "000000" } },
-          left: { style: "thin", color: { rgb: "000000" } },
-          right: { style: "thin", color: { rgb: "000000" } },
-        },
-      };
-    }
-
-    // Aplicar color alternado en las filas de datos
-    for (let R = 1; R <= range.e.r; ++R) {
-      const fillColor = R % 2 === 0 ? "F2F2F2" : "FFFFFF"; // Color alternado
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-        if (!ws[cellAddress]) continue;
-
-        ws[cellAddress].s = {
-          fill: { fgColor: { rgb: fillColor } },
-          font: { color: { rgb: "000000" }, sz: 11 },
-          alignment: { horizontal: "left", vertical: "center" },
-          border: {
-            top: { style: "thin", color: { rgb: "CCCCCC" } },
-            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
-            left: { style: "thin", color: { rgb: "CCCCCC" } },
-            right: { style: "thin", color: { rgb: "CCCCCC" } },
-          },
-        };
-      }
-    }
+    const maxLengths = wsData[0].map((_, i) =>
+      Math.max(...wsData.map((r) => (r[i] ? r[i].toString().length : 0)))
+    );
+    ws['!cols'] = maxLengths.map((len) => ({ width: Math.min(Math.max(len + 5, 15), 30) }));
 
     XLSX.utils.book_append_sheet(wb, ws, 'Accesos');
-
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true });
-
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'accesos.xlsx');
   };
 
@@ -253,12 +201,8 @@ function Accesos() {
     <div className="bg-gray-900 text-white p-6">
       <h2 className="text-2xl font-bold mb-4">Accesos (Rol simulado: {rol})</h2>
 
-      {/* Botones PDF y Excel */}
       <div className="mb-4 flex gap-4">
-        <button
-          onClick={exportarPDF}
-          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md"
-        >
+        <button onClick={exportarPDF} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md">
           Descargar PDF
         </button>
         <button
@@ -269,7 +213,6 @@ function Accesos() {
         </button>
       </div>
 
-      {/* Filtros y tabla */}
       <div className="mb-6 flex flex-wrap items-end gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -280,7 +223,7 @@ function Accesos() {
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Ej. Juan, García, 12345678"
-            className="w-72 px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-800 text-white"
+            className="w-72 px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white"
           />
         </div>
 
@@ -289,9 +232,9 @@ function Accesos() {
           <select
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
-            className="w-48 px-3 py-2 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-800 text-white"
+            className="w-48 px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white"
           >
-            <option value="">Todos (sin eliminados)</option>
+            <option value="">Todos</option>
             <option value="1">Propietario</option>
             <option value="2">Trabajador</option>
             <option value="3">Residente</option>
@@ -300,30 +243,31 @@ function Accesos() {
         </div>
       </div>
 
+      {/* TABLA */}
       <table className="min-w-full border-collapse border border-gray-600">
         <thead>
           <tr className="bg-indigo-700">
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-200">ID Persona</th>
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-200">Nombre</th>
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-200">Apellido</th>
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-200">DNI</th>
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-200">Tipo Persona</th>
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-200">Rol</th>
-            <th className="px-4 py-2 text-left text-sm font-medium text-gray-200">Acciones</th>
+            <th className="px-4 py-2 text-left">ID Persona</th>
+            <th className="px-4 py-2 text-left">Nombre</th>
+            <th className="px-4 py-2 text-left">Apellido</th>
+            <th className="px-4 py-2 text-left">DNI</th>
+            <th className="px-4 py-2 text-left">Tipo Persona</th>
+            <th className="px-4 py-2 text-left">Rol</th>
+            <th className="px-4 py-2 text-left">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {accesosFiltrados.length > 0 ? (
-            accesosFiltrados.map((persona) => (
+          {accesosPaginados.length > 0 ? (
+            accesosPaginados.map((persona) => (
               <tr key={persona.id_persona} className="hover:bg-gray-800">
-                <td className="px-4 py-2 text-sm text-gray-200">{persona.id_persona}</td>
-                <td className="px-4 py-2 text-sm text-gray-200">{persona.nombre}</td>
-                <td className="px-4 py-2 text-sm text-gray-200">{persona.apellido}</td>
-                <td className="px-4 py-2 text-sm text-gray-200">{persona.dni}</td>
-                <td className="px-4 py-2 text-sm text-gray-200">{persona.tipo_persona}</td>
-                <td className="px-4 py-2 text-sm text-gray-200">{rolTexto(persona.rol)}</td>
-                <td className="px-4 py-2 text-sm text-gray-200">
-                  {persona.rol !== '0' && (
+                <td className="px-4 py-2">{persona.id_persona}</td>
+                <td className="px-4 py-2">{persona.nombre}</td>
+                <td className="px-4 py-2">{persona.apellido}</td>
+                <td className="px-4 py-2">{persona.dni}</td>
+                <td className="px-4 py-2">{persona.tipo_persona}</td>
+                <td className="px-4 py-2">{rolTexto(persona.rol)}</td>
+                <td className="px-4 py-2">
+                  {persona.rol !== 0 ? (
                     <>
                       <button
                         onClick={() => handleEdit(persona)}
@@ -338,8 +282,7 @@ function Accesos() {
                         Dar de baja
                       </button>
                     </>
-                  )}
-                  {persona.rol === '0' && (
+                  ) : (
                     <span className="text-gray-400 italic">Dado de baja</span>
                   )}
                 </td>
@@ -347,7 +290,7 @@ function Accesos() {
             ))
           ) : (
             <tr>
-              <td colSpan="7" className="px-4 py-2 text-sm text-gray-200 text-center">
+              <td colSpan="7" className="px-4 py-2 text-center">
                 No se encontraron registros.
               </td>
             </tr>
@@ -355,24 +298,64 @@ function Accesos() {
         </tbody>
       </table>
 
+      {/* PAGINACIÓN */}
+      {totalPaginas > 1 && (
+        <div className="flex justify-center items-center mt-6 space-x-2">
+          <button
+            onClick={() => irAPagina(paginaActual - 1)}
+            disabled={paginaActual === 1}
+            className={`px-3 py-1 rounded-md ${
+              paginaActual === 1
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            }`}
+          >
+            Anterior
+          </button>
+
+          {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+            <button
+              key={num}
+              onClick={() => irAPagina(num)}
+              className={`px-3 py-1 rounded-md ${
+                num === paginaActual
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+              }`}
+            >
+              {num}
+            </button>
+          ))}
+
+          <button
+            onClick={() => irAPagina(paginaActual + 1)}
+            disabled={paginaActual === totalPaginas}
+            className={`px-3 py-1 rounded-md ${
+              paginaActual === totalPaginas
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            }`}
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+
+      {/* MODAL EDITAR */}
       {editandoPersona && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-md shadow-md w-full max-w-md">
-            <h3 className="text-xl font-semibold mb-4 text-white">Editar Rol</h3>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-300 mb-1">Rol</label>
-              <select
-                value={formData.rol}
-                onChange={(e) => setFormData({ rol: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-              >
-                <option value="1">Propietario</option>
-                <option value="2">Trabajador</option>
-                <option value="3">Residente</option>
-              </select>
-            </div>
-
+            <h3 className="text-xl font-semibold mb-4">Editar Rol</h3>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Rol</label>
+            <select
+              value={formData.rol}
+              onChange={(e) => setFormData({ rol: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+            >
+              <option value="1">Propietario</option>
+              <option value="2">Trabajador</option>
+              <option value="3">Residente</option>
+            </select>
             <div className="mt-6 flex justify-end space-x-4">
               <button
                 onClick={() => setEditandoPersona(null)}
@@ -391,12 +374,17 @@ function Accesos() {
         </div>
       )}
 
+      {/* MODAL CONFIRMAR BAJA */}
       {personaParaBaja && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-md shadow-md w-full max-w-md text-white">
             <h3 className="text-xl font-semibold mb-4">Confirmar baja</h3>
             <p className="mb-4">
-              ¿Estás seguro que quieres dar de baja a <strong>{personaParaBaja.nombre} {personaParaBaja.apellido}</strong>?
+              ¿Estás seguro que quieres dar de baja a{' '}
+              <strong>
+                {personaParaBaja.nombre} {personaParaBaja.apellido}
+              </strong>
+              ?
             </p>
             <div className="flex justify-end space-x-4">
               <button
