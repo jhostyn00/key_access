@@ -1,13 +1,11 @@
 'use client';
 
-
-
 import { useState } from 'react';
 
 import supabase from '@/lib/supabaseClient';
 
 import { useRouter } from 'next/navigation';
-
+import AnalogClock from "@/app/components/AnalogClock";
 
 
 export default function LoginPage() {
@@ -150,7 +148,12 @@ function ForgotPasswordModal({ isOpen, onClose, onSubmit, loading }) {
 
  return (
   <>
-    <div className="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-400 flex items-center justify-center font-[Outfit] px-6 py-12">
+    <div className="fondo-login min-h-screen flex items-center justify-center font-[Outfit] px-6 py-12">
+      <div className="circle circle1"></div>
+  <div className="circle circle2"></div>
+  <div className="circle circle3"></div>
+  <div className="circle circle4"></div>
+  <div className="circle circle5"></div>
       <div className="flex flex-col md:flex-row items-center gap-8 backdrop-blur-md bg-white/10 p-8 rounded-3xl shadow-lg max-w-4xl w-full">
         {/* Login Box */}
         <form
@@ -159,12 +162,6 @@ function ForgotPasswordModal({ isOpen, onClose, onSubmit, loading }) {
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-semibold">INGRESA</h2>
-            <a
-              href="/dashboard"
-              className="text-sm text-white/80 hover:text-white transition"
-            >
-              REGISTRARSE
-            </a>
           </div>
 
           <label className="text-sm block mb-1">DNI</label>
@@ -204,29 +201,28 @@ function ForgotPasswordModal({ isOpen, onClose, onSubmit, loading }) {
             Entrar →
           </button>
 
-          <p className="text-xs text-center mt-6 text-white/70">
-            Click here for more info.
-          </p>
         </form>
 
         {/* Calendar Box */}
         <div className="w-full max-w-sm text-black bg-white/30 backdrop-blur-xl rounded-2xl p-6 flex flex-col items-center justify-between">
           <div className="text-center mb-4">
-            <h1 className="text-5xl font-bold text-black">Jan</h1>
+            <h1 className="text-5xl font-bold text-black">Oct</h1>
             <h2 className="text-3xl text-gray-700 font-light">2025</h2>
           </div>
 
           <p className="text-center text-sm text-black/70 mb-4">
-            Selasa 06<br />
-            January 2025<br />
-            Pinterest
+            Lima - Perú<br />
+            Octubre 2025<br />
+            Key Access
           </p>
 
-          <div className="w-40 h-40 bg-gradient-to-br from-pink-200 to-pink-400 rounded-full mb-6"></div>
+          <div className="w-40 h-40 bg-[#324f62] rounded-full mb-6">
+            <AnalogClock />
+          </div>
 
-          <button className="bg-black text-white px-6 py-2 rounded-full hover:bg-gray-900 transition">
-            Click Here
-          </button>
+          <a href="/dashboard" className="bg-white text-white px-6 py-2 rounded-full hover:bg-gray-200 transition">
+            Registrate aquí
+          </a>
         </div>
       </div>
     </div>

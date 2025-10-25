@@ -4,7 +4,6 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { useEffect, useRef, useState } from 'react';
 import supabase from '@/lib/supabaseClient';
 import html2canvas from 'html2canvas';
-import HeaderDashboard from '@/app/components/HeaderDashboard';
 
 
 
@@ -243,14 +242,17 @@ setUidGenerado(uidGeneradoValue);
   };
 
   return (
-    <main className="bg-gradient-to-b from-gray-100 to-gray-500 min-h-screen">
-      <HeaderDashboard />
-
+    <main className="fondo-login min-h-screen flex items-center justify-center font-[Outfit] px-6 py-12">
+      <div className="circle circle1"></div>
+  <div className="circle circle2"></div>
+  <div className="circle circle3"></div>
+  <div className="circle circle4"></div>
+  <div className="circle circle5"></div>
       <form
         onSubmit={handleSubmit}
-        className="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-lg mt-10"
+        className="bg-white p-8 rounded-lg shadow-lg mt-10 w-100" 
       >
-        <h1 className="text-center text-3xl font-bold text-gray-800">
+        <h1 className="text-center text-3xl font-bold text-gray-800 ">
           Registrar Persona
         </h1>
 
