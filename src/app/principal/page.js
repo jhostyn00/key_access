@@ -120,12 +120,17 @@ function Accesos() {
         return 'Trabajador';
       case 3:
         return 'Residente';
+      case 4:
+        return 'Visitante';
+      case 5:
+        return 'Proveedor';
       case 0:
         return 'Eliminado';
       default:
         return rol;
     }
   };
+
 
   // 📄 PAGINACIÓN
   const [paginaActual, setPaginaActual] = useState(1);
@@ -238,8 +243,10 @@ function Accesos() {
             <option value="1">Propietario</option>
             <option value="2">Trabajador</option>
             <option value="3">Residente</option>
+            <option value="4">Visitante</option>
+            <option value="5">Proveedor</option>
             <option value="eliminado">Eliminados</option>
-          </select>
+</select>
         </div>
       </div>
 
@@ -355,7 +362,10 @@ function Accesos() {
               <option value="1">Propietario</option>
               <option value="2">Trabajador</option>
               <option value="3">Residente</option>
+              <option value="4">Visitante</option>
+              <option value="5">Proveedor</option>
             </select>
+
             <div className="mt-6 flex justify-end space-x-4">
               <button
                 onClick={() => setEditandoPersona(null)}
