@@ -228,7 +228,7 @@ export default function PanelGeneral() {
             {/* Selector de fecha */}
             <div className="flex justify-center items-center gap-4 mb-6">
               <label className="text-sm text-gray-300">Seleccionar fecha:</label>
-              
+
               <input
                 type="date"
                 value={fechaSeleccionada}
@@ -236,16 +236,21 @@ export default function PanelGeneral() {
                 className="bg-gray-800 text-white border border-gray-600 rounded px-3 py-1"
               />
 
-              <button
-                onClick={() => {
-                  const hoy = new Date();
-                  setFechaSeleccionada(hoy.toISOString().split('T')[0]);
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-1 rounded transition-colors"
-              >
-                Hoy
-              </button>
+              {/* Mostrar el botón solo si la fecha no es hoy */}
+              {fechaSeleccionada !== new Date().toISOString().split('T')[0] && (
+                <button
+                  onClick={() => {
+                    const hoy = new Date();
+                    setFechaSeleccionada(hoy.toISOString().split('T')[0]);
+                  }}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-1 rounded transition-all hover:scale-105"
+                  title="Volver a la fecha actual"
+                >
+                  🕒 Hoy
+                </button>
+              )}
             </div>
+
 
 
             {/* Fecha tipo calendario */}
