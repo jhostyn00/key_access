@@ -44,8 +44,9 @@ export default function PanelGeneral() {
         .gte('fecha_hora', `${fechaSeleccionada}T00:00:00`)
         .lte('fecha_hora', `${fechaSeleccionada}T23:59:59`);
 
-      const entradas = accesosDia?.filter((a) => a.tipo === 'entrada')?.length || 0;
-      const salidas = accesosDia?.filter((a) => a.tipo === 'salida')?.length || 0;
+      const entradas = accesosDia?.filter((a) => a.tipo_movimiento === 'ingreso')?.length || 0;
+      const salidas = accesosDia?.filter((a) => a.tipo_movimiento === 'salida')?.length || 0;
+
 
       // 3️⃣ Últimos accesos
       const { data: ultimosAccesos } = await supabase
@@ -227,13 +228,25 @@ export default function PanelGeneral() {
             {/* Selector de fecha */}
             <div className="flex justify-center items-center gap-4 mb-6">
               <label className="text-sm text-gray-300">Seleccionar fecha:</label>
+              
               <input
                 type="date"
                 value={fechaSeleccionada}
                 onChange={(e) => setFechaSeleccionada(e.target.value)}
                 className="bg-gray-800 text-white border border-gray-600 rounded px-3 py-1"
               />
+
+              <button
+                onClick={() => {
+                  const hoy = new Date();
+                  setFechaSeleccionada(hoy.toISOString().split('T')[0]);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-1 rounded transition-colors"
+              >
+                Hoy
+              </button>
             </div>
+
 
             {/* Fecha tipo calendario */}
             <div className="text-center mb-8">
@@ -304,8 +317,9 @@ export default function PanelGeneral() {
                         {new Date(a.fecha_hora).toLocaleString()}
                       </td>
                       <td className="px-4 py-2 text-sm">
-                        {a.tipo === 'entrada' ? '⬆️ Entrada' : '⬇️ Salida'}
+                        {a.tipo_movimiento === 'ingreso' ? '⬆️ Ingreso' : '⬇️ Salida'}
                       </td>
+
                     </tr>
                   ))
                 ) : (
