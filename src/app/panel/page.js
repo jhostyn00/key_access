@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
-// Importación de los componentes
 import Dashboard from '@/app/components/InicioDashboard';
 import Registros from '@/app/components/Historial';
 import Horarios from '@/app/components/Horarios';
@@ -13,18 +12,34 @@ import DatosUsuario from '@/app/components/DatosUsuario';
 import Filtros from '@/app/components/Filtros';
 
 const Modulo = ({ nombre, Contenido, urlActual }) => (
-  <div className="modulo cuadros rounded-2xl shadow-4xl p-8">
-    <h3 className="text-3xl font-bold text-teal-800 mb-4 flex items-center">
-      <span className="mr-3">{nombre}</span>
-    </h3>
-
-    <div className="text-xl text-gray-700 leading-relaxed mb-6">
+  <div className="glass-card" style={{ padding: '1rem' }}>
+    <h3 style={{
+      color: 'var(--text-primary-contrast)',
+      fontSize: '1.75rem',
+      fontWeight: 'bold',
+      marginBottom: '1rem'
+    }}>{nombre}</h3>
+    <div style={{ color: 'var(--text-secondary-contrast)', marginBottom: '1.5rem' }}>
       <Contenido />
     </div>
-
-    <div className="bg-teal-50 p-4 rounded-lg border-l-4 border-teal-500">
-      <p className="text-sm font-medium text-teal-900 mb-1">URL Actual para este Módulo:</p>
-      <code className="text-teal-700 bg-white px-2 py-1 rounded text-sm font-mono break-all">
+    <div style={{
+      backgroundColor: 'var(--bg-glass)',
+      padding: '1rem',
+      borderLeft: `4px solid var(--color-accent-green)`,
+      borderRadius: 'var(--radius-md)'
+    }}>
+      <p style={{ color: 'var(--text-primary-contrast)', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+        URL Actual:
+      </p>
+      <code style={{
+        color: 'var(--text-secondary-contrast)',
+        backgroundColor: 'var(--bg-glass-light)',
+        padding: '0.25rem 0.5rem',
+        borderRadius: 'var(--radius-sm)',
+        fontFamily: 'monospace',
+        wordBreak: 'break-all',
+        fontSize: '0.875rem'
+      }}>
         {urlActual}
       </code>
     </div>
@@ -36,10 +51,11 @@ const Panel = () => {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
+  // Leer el módulo desde los parámetros de la URL o establecer el módulo predeterminado
   const moduloFromUrl = searchParams.get('modulo') || 'dashboard';
   const [moduloActivo, setModuloActivo] = useState(moduloFromUrl);
 
-  // Mapeo de módulos
+  // Definir los módulos disponibles y su contenido
   const contenidoModulos = {
     dashboard: Dashboard,
     registros: Registros,
@@ -50,70 +66,133 @@ const Panel = () => {
     filtros: Filtros,
   };
 
+  // Cambiar el módulo activo cuando se hace clic en un módulo
   const cambiarModulo = (modulo) => {
     setModuloActivo(modulo);
     router.replace(`/panel?modulo=${modulo}`, undefined, { shallow: true });
   };
 
+  // Actualizar el módulo activo si cambia en la URL
   useEffect(() => {
     if (moduloFromUrl !== moduloActivo) {
       setModuloActivo(moduloFromUrl);
     }
   }, [moduloFromUrl]);
 
+  // Construir la URL actual para mostrarla
   const urlActual =
     typeof window !== 'undefined'
       ? `${window.location.origin}${pathname}?modulo=${moduloActivo}`
       : `http://localhost:3000${pathname}?modulo=${moduloActivo}`;
 
-  const ComponenteActivo = contenidoModulos[moduloActivo] || (() => <div>Módulo no encontrado</div>);
+  // Seleccionar el componente activo basado en el módulo
+  const ComponenteActivo = contenidoModulos[moduloActivo] || (() => <div style={{ color: 'var(--text-primary-contrast)' }}>Módulo no encontrado</div>);
+
+  // Estado para almacenar el usuario y verificar su existencia
+  const [usuario, setUsuario] = useState(null);
+
+  // Usar useEffect para obtener el usuario de localStorage y manejar la redirección
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUser = JSON.parse(localStorage.getItem('usuario'));
+      setUsuario(storedUser);
+
+      if (!storedUser) {
+        router.push('/login'); // Redirigir al login si no se encuentra el usuario
+      }
+    }
+  }, [router]);
+
+  // Mientras se obtiene el usuario, mostrar un "Loading..." o el contenido de la página
+  if (!usuario) {
+    return <p>Loading...</p>; // Este mensaje solo se mostrará si no hay usuario en localStorage
+  }
 
   return (
-    <div className="flex h-screen fondo-login">
-      <div className="circle circle1"></div>
-      <div className="circle circle2"></div>
-      <div className="circle circle3"></div>
-      <div className="circle circle4"></div>
-      <div className="circle circle5"></div>
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      position: 'relative',
+      background: 'var(--gradient-primary)',
+      overflow: 'hidden'
+    }}>
+
+      {/* Círculos flotantes */}
+      <div style={{
+        position: 'absolute',
+        width: '18rem',
+        height: '18rem',
+        backgroundColor: 'rgba(108,92,231,0.2)',
+        borderRadius: '9999px',
+        top: '-5rem',
+        left: '-5rem',
+        animation: 'pulse 6s infinite'
+      }}></div>
+      <div style={{
+        position: 'absolute',
+        width: '24rem',
+        height: '24rem',
+        backgroundColor: 'rgba(199,182,226,0.2)',
+        borderRadius: '9999px',
+        bottom: '-10rem',
+        right: '-10rem',
+        animation: 'pulse 8s infinite'
+      }}></div>
+      <div style={{
+        position: 'absolute',
+        width: '15rem',
+        height: '15rem',
+        backgroundColor: 'rgba(183,228,199,0.15)',
+        borderRadius: '9999px',
+        top: '50%',
+        left: '33%',
+        animation: 'spin 40s linear infinite'
+      }}></div>
 
       {/* Sidebar */}
-      <aside className="bg-gray-100 w-72 text-black pl-6 py-6 flex flex-col">
-        <h2 className="text-3xl font-bold mb-8 text-center bg-opacity-10 rounded-xl py-3">
-          Dashboard
-        </h2>
+      <aside style={{
+        width: '18rem',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '1.5rem',
+        zIndex: 10
+      }} className="glass-card">
+        <h2 style={{
+          textAlign: 'center',
+          fontSize: '1.75rem',
+          fontWeight: 'bold',
+          marginBottom: '2rem',
+          color: 'var(--text-primary-contrast)'
+        }}>Dashboard</h2>
 
-        <nav className="flex-1 flex flex-col space-y-4">
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
           {Object.keys(contenidoModulos).map((mod) => (
             <button
               key={mod}
               onClick={() => cambiarModulo(mod)}
-              className={`link-nav flex items-center p-4 text-lg font-semibold rounded-xl
-                text-white hover:bg-white hover:bg-opacity-20 hover:text-teal-900
-                hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white
-                ${moduloActivo === mod ? 'bg-white bg-opacity-30 scale-105 ring-2 ring-white text-teal-900' : ''}
-              `}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '1rem',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-lg)',
+                transition: 'all 0.3s',
+                color: moduloActivo === mod ? 'var(--text-primary-contrast)' : 'var(--text-secondary-contrast)',
+                backgroundColor: 'var(--bg-glass)',
+                border: moduloActivo === mod ? `2px solid var(--color-accent-indigo)` : `1px solid var(--border-glass)`,
+                transform: moduloActivo === mod ? 'scale(1.05)' : 'scale(1)',
+              }}
             >
-              <span className="mr-3 text-2xl">
-                {mod === 'dashboard' ? (
-                  <i className="bi bi-house-door-fill" />
-                ) : mod === 'registros' ? (
-                  <i className="bi bi-door-open" />
-                ) : mod === 'horarios' ? (
-                  <i className="bi bi-clock-history" />
-                ) : mod === 'qr' ? (
-                  <i className="bi bi-qr-code-scan" />
-                ) : mod === 'administrar' ? (
-                  <i className="bi bi-box-arrow-right" />
-                ) : mod === 'datos' ? (
-                  <i className="bi bi-person-circle" />
-                ) : mod === 'filtros' ? (
-                  <i className="bi bi-funnel-fill" />
-                ) : (
-                  ''
-                )}
+              <span style={{ marginRight: '0.75rem', fontSize: '1.5rem' }}>
+                {mod === 'dashboard' ? '🏠' :
+                 mod === 'registros' ? '🚪' :
+                 mod === 'horarios' ? '⏰' :
+                 mod === 'qr' ? '📱' :
+                 mod === 'administrar' ? '📦' :
+                 mod === 'datos' ? '👤' :
+                 mod === 'filtros' ? '🔽' : '' }
               </span>
-
-              {/* Nombre con mayúscula inicial */}
               {mod.charAt(0).toUpperCase() + mod.slice(1)}
             </button>
           ))}
@@ -121,21 +200,44 @@ const Panel = () => {
       </aside>
 
       {/* Contenido principal */}
-      <div
-        className="z-4 flex-1 flex flex-col p-6 overflow-hidden rounded-lg mr-6 my-6 
-          border border-white/20 backdrop-blur-md shadow-lg"
-      >
-        <header className="rounded-xl shadow-lg p-6 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-gray-800">
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '1.5rem',
+        overflow: 'hidden',
+        margin: '1.5rem',
+        borderRadius: 'var(--radius-lg)'
+      }} className="glass-card">
+        <header style={{
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.5rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          justifyContent: 'space-between'
+        }} className="glass-card">
+          <h1 style={{
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: 'var(--text-primary-contrast)'
+          }}>
             Panel de Control - Módulo: {moduloActivo}
           </h1>
 
-          <div className="text-sm text-gray-600 bg-teal-50 p-3 rounded-lg w-full sm:w-auto">
-            <span className="font-medium">URL Actual:</span> {urlActual}
+          <div style={{
+            fontSize: '0.875rem',
+            color: 'var(--text-secondary-contrast)',
+            backgroundColor: 'var(--bg-glass-light)',
+            padding: '0.75rem',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <span style={{ fontWeight: 500 }}>URL Actual:</span> {urlActual}
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           <Modulo
             key={moduloActivo}
             nombre={moduloActivo.charAt(0).toUpperCase() + moduloActivo.slice(1)}

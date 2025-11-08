@@ -242,262 +242,241 @@ setUidGenerado(uidGeneradoValue);
   };
 
   return (
-    <main className="fondo-login min-h-screen flex items-center justify-center font-[Outfit] px-6 py-12">
-      <div className="circle circle1"></div>
-  <div className="circle circle2"></div>
-  <div className="circle circle3"></div>
-  <div className="circle circle4"></div>
-  <div className="circle circle5"></div>
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow-lg mt-10 w-100" 
+    <main className="fondo-login min-h-screen flex items-center justify-center font-[Outfit] px-6 py-12 relative overflow-hidden">
+  {/* Círculos animados de fondo */}
+  <div className="absolute w-[600px] h-[600px] bg-[#324f6279] rounded-full top-10 left-20 animate-move1 filter blur-2xl"></div>
+  <div className="absolute w-[600px] h-[600px] bg-[#2085925b] rounded-full top-40 left-60 animate-move2 filter blur-2xl"></div>
+  <div className="absolute w-[600px] h-[600px] bg-[#324f6279] rounded-full top-60 left-30 animate-move3 filter blur-2xl"></div>
+
+  {/* Formulario */}
+  <form
+    onSubmit={handleSubmit}
+    className="relative z-10 w-full max-w-3xl bg-white/20 backdrop-blur-xl rounded-3xl p-8 shadow-lg flex flex-col gap-6"
+  >
+    <h1 className="text-center text-3xl font-bold text-white mb-4">Registrar Persona</h1>
+
+    {message && (
+      <p
+        className={`text-center font-semibold ${
+          message.includes('❌') ? 'text-red-500' : 'text-green-400'
+        }`}
       >
-        <h1 className="text-center text-3xl font-bold text-gray-800 ">
-          Registrar Persona
-        </h1>
+        {message}
+      </p>
+    )}
 
-        {message && (
-          <p className="text-center mt-4 font-semibold text-green-600">
-            {message}
-          </p>
-        )}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Campos generales */}
+      <input
+        id="nombre"
+        placeholder="Nombre"
+        value={formData.nombre}
+        onChange={handleChange}
+        required
+        className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+      />
 
-        <div className="mt-6 flex flex-col gap-4">
-          {/* Campos generales */}
-          <label className="text-gray-700">Nombre</label>
-          <input
-            id="nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-          />
+      <input
+        id="apellido"
+        placeholder="Apellido"
+        value={formData.apellido}
+        onChange={handleChange}
+        required
+        className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+      />
 
-          <label className="text-gray-700">Apellido</label>
-          <input
-            id="apellido"
-            value={formData.apellido}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-          />
+      <input
+        id="dni"
+        placeholder="DNI"
+        value={formData.dni}
+        onChange={handleChange}
+        required
+        maxLength={8}
+        inputMode="numeric"
+        pattern="[0-9]{8}"
+        className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+      />
 
-          <label className="text-gray-700">DNI</label>
-          <input
-            id="dni"
-            value={formData.dni}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-            maxLength={8}
-            inputMode="numeric"
-            pattern="[0-9]{8}"
-          />
-          <label className="text-gray-700">Correo</label>
-          <input
-            id="correo"
-            value={formData.correo}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-          />
-          <label className="text-gray-700">Clave</label>
-          <input
-            id="clave"
-            type='password'
-            value={formData.clave}
-            onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
-          />
+      <input
+        id="correo"
+        type="email"
+        placeholder="Correo"
+        value={formData.correo}
+        onChange={handleChange}
+        required
+        className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+      />
 
-          <label className="text-gray-700">Tipo de Persona</label>
+      <input
+        id="clave"
+        type="password"
+        placeholder="Clave"
+        value={formData.clave}
+        onChange={handleChange}
+        required
+        className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+      />
+
+      <select
+        id="tipo_persona"
+        value={formData.tipo_persona}
+        onChange={handleChange}
+        required
+        className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+      >
+        <option value="">Tipo de Persona</option>
+        <option value="residente">Residente</option>
+        <option value="propietario">Propietario</option>
+        <option value="trabajador">Trabajador</option>
+        <option value="visitante">Visitante</option>
+        <option value="proveedor">Proveedor</option>
+      </select>
+    </div>
+
+    {/* Campos condicionales */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {formData.tipo_persona === 'residente' && (
+        <>
           <select
-            id="tipo_persona"
-            value={formData.tipo_persona}
+            id="id_departamento"
+            value={formData.id_departamento}
             onChange={handleChange}
-            required
-            className="border-2 p-2 rounded text-black"
+            className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
           >
-            <option value="">Seleccionar...</option>
-            <option value="residente">Residente</option>
-            <option value="propietario">Propietario</option>
-            <option value="trabajador">Trabajador</option>
-            <option value="visitante">Visitante</option>
-            <option value="proveedor">Proveedor</option>
+            <option value="">Departamento</option>
+            {departamentos.map((dep) => (
+              <option key={dep.id_departamento} value={dep.id_departamento}>
+                {dep.edificio?.nombre_edificio} - {dep.numero}
+              </option>
+            ))}
           </select>
 
-          {/* Campos condicionales según tipo_persona */}
-          {(formData.tipo_persona === 'residente' ||
-            formData.tipo_persona === 'propietario') && (
-            <>
-              {formData.tipo_persona === 'residente' && (
-                <>
-                  <label className="text-gray-700">Departamento</label>
-                  <select
-                    id="id_departamento"
-                    value={formData.id_departamento}
-                    onChange={handleChange}
-                    className="border-2 p-2 rounded text-black"
-                  >
-                    <option value="">Seleccionar...</option>
-                    {departamentos.map((dep) => (
-                      <option
-                        key={dep.id_departamento}
-                        value={dep.id_departamento}
-                      >
-                        {dep.edificio?.nombre_edificio} - {dep.numero}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
+          <input
+            id="telefono"
+            placeholder="Teléfono"
+            value={formData.telefono}
+            onChange={handleChange}
+            maxLength={9}
+            inputMode="numeric"
+            pattern="(9[0-9]{8}|[0-9]{7})"
+            className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+          />
+        </>
+      )}
 
-              <label className="text-gray-700">Teléfono</label>
-              <input
-                id="telefono"
-                value={formData.telefono}
-                onChange={handleChange}
-                className="border-2 p-2 rounded text-black"
-                maxLength={9}
-                inputMode="numeric"
-                pattern="(9[0-9]{8}|[0-9]{7})"
-              />
-            </>
-          )}
+      {formData.tipo_persona === 'propietario' && (
+        <select
+          id="id_edificio"
+          value={formData.id_edificio}
+          onChange={handleChange}
+          className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+        >
+          <option value="">Edificio</option>
+          {edificios.map((ed) => (
+            <option key={ed.id_edificio} value={ed.id_edificio}>
+              {ed.nombre_edificio}
+            </option>
+          ))}
+        </select>
+      )}
 
-          {formData.tipo_persona === 'propietario' && (
-            <>
-              <label className="text-gray-700">Edificio</label>
-              <select
-                id="id_edificio"
-                value={formData.id_edificio}
-                onChange={handleChange}
-                className="border-2 p-2 rounded text-black"
-              >
-                <option value="">Seleccionar...</option>
-                {edificios.map((ed) => (
-                  <option key={ed.id_edificio} value={ed.id_edificio}>
-                    {ed.nombre_edificio}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
+      {formData.tipo_persona === 'trabajador' && (
+        <>
+          <input
+            id="cargo"
+            placeholder="Cargo"
+            value={formData.cargo}
+            onChange={handleChange}
+            className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+          />
+          <input
+            id="turno"
+            placeholder="Turno"
+            value={formData.turno}
+            onChange={handleChange}
+            className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+          />
+        </>
+      )}
 
-          {formData.tipo_persona === 'trabajador' && (
-            <>
-              <label className="text-gray-700">Cargo</label>
-              <input
-                id="cargo"
-                value={formData.cargo}
-                onChange={handleChange}
-                className="border-2 p-2 rounded text-black"
-              />
+      {(formData.tipo_persona === 'visitante' || formData.tipo_persona === 'proveedor') && (
+        <select
+          id="id_residente_visitado"
+          value={formData.id_residente_visitado}
+          onChange={handleChange}
+          className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+        >
+          <option value="">Residente destino</option>
+          {residentes.map((r) => (
+            <option key={r.id_residente} value={r.id_residente}>
+              {r.persona?.nombre} {r.persona?.apellido}
+            </option>
+          ))}
+        </select>
+      )}
 
-              <label className="text-gray-700">Turno</label>
-              <input
-                id="turno"
-                value={formData.turno}
-                onChange={handleChange}
-                className="border-2 p-2 rounded text-black"
-              />
-            </>
-          )}
+      {formData.tipo_persona === 'visitante' && (
+        <input
+          id="motivo_visita"
+          placeholder="Motivo de visita"
+          value={formData.motivo_visita}
+          onChange={handleChange}
+          className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+        />
+      )}
 
-          {(formData.tipo_persona === 'visitante' ||
-            formData.tipo_persona === 'proveedor') && (
-            <>
-              <label className="text-gray-700">Residente destino</label>
-              <select
-                id="id_residente_visitado"
-                value={formData.id_residente_visitado}
-                onChange={handleChange}
-                className="border-2 p-2 rounded text-black"
-              >
-                <option value="">Seleccionar...</option>
-                {residentes.map((r) => (
-                  <option key={r.id_residente} value={r.id_residente}>
-                    {r.persona?.nombre} {r.persona?.apellido}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
+      {formData.tipo_persona === 'proveedor' && (
+        <>
+          <input
+            id="empresa"
+            placeholder="Empresa"
+            value={formData.empresa}
+            onChange={handleChange}
+            className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+          />
+          <input
+            id="descripcion_producto"
+            placeholder="Descripción del producto"
+            value={formData.descripcion_producto}
+            onChange={handleChange}
+            className="p-3 rounded-full bg-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+          />
+        </>
+      )}
+    </div>
 
-          {formData.tipo_persona === 'visitante' && (
-            <>
-              <label className="text-gray-700">Motivo de visita</label>
-              <input
-                id="motivo_visita"
-                value={formData.motivo_visita}
-                onChange={handleChange}
-                className="border-2 p-2 rounded text-black"
-              />
-            </>
-          )}
-
-          {formData.tipo_persona === 'proveedor' && (
-            <>
-              <label className="text-gray-700">Empresa</label>
-              <input
-                id="empresa"
-                value={formData.empresa}
-                onChange={handleChange}
-                className="border-2 p-2 rounded text-black"
-              />
-
-              <label className="text-gray-700">Descripción del producto</label>
-              <input
-                id="descripcion_producto"
-                value={formData.descripcion_producto}
-                onChange={handleChange}
-                className="border-2 p-2 rounded text-black"
-              />
-            </>
-          )}
-        </div>
-
-        <div className="mt-6">
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Registrar
-          </button>
-        </div>
-      </form>
-
-      {/* QR oculto para captura */}
-      <div
-        style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}
-        ref={qrRef}
-      >
-        {uidGenerado && <QRCodeCanvas value={uidGenerado} size={200} />}
-      </div>
-
-      {/* Mostrar QR al usuario */}
-      {qrUrl && (
-  <div className="flex flex-col items-center mt-6 gap-4">
-    {/* Vista previa del QR */}
-    <img src={qrUrl} alt="Código QR" width={200} />
-
-    {/* Botón para enviar el link por WhatsApp */}
-    <a
-      href={`https://wa.me/51${formData.telefono.replace(/\D/g, '')}?text=${encodeURIComponent(
-        `Hola ${formData.nombre}, este es tu código QR de acceso: ${qrUrl}`
-      )}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+    {/* Botón */}
+    <button
+      type="submit"
+      className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-full text-lg transition"
     >
-      Enviar QR por WhatsApp
-    </a>
-  </div>
-)}
+      Registrar →
+    </button>
 
+    {/* QR oculto para captura */}
+    <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }} ref={qrRef}>
+      {uidGenerado && <QRCodeCanvas value={uidGenerado} size={200} />}
+    </div>
 
-    </main>
+    {/* Mostrar QR */}
+    {qrUrl && (
+      <div className="flex flex-col items-center mt-6 gap-4">
+        <img src={qrUrl} alt="Código QR" width={200} />
+        <a
+          href={`https://wa.me/51${formData.telefono.replace(/\D/g, '')}?text=${encodeURIComponent(
+            `Hola ${formData.nombre}, este es tu código QR de acceso: ${qrUrl}`
+          )}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition"
+        >
+          Enviar QR por WhatsApp
+        </a>
+      </div>
+    )}
+  </form>
+</main>
+
   );
 }
 

@@ -8,59 +8,73 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
-function Accesos() {
-  const [user, setUser] = useState({ id: '1234' });
-  const [rol, setRol] = useState('trabajador');
+export default function AccesosPanel({ fechaSeleccionada }) {
   const [accesos, setAccesos] = useState([]);
-  const [filtro, setFiltro] = useState('');
   const [busqueda, setBusqueda] = useState('');
-
   const [editandoPersona, setEditandoPersona] = useState(null);
   const [formData, setFormData] = useState({ rol: '' });
   const [personaParaBaja, setPersonaParaBaja] = useState(null);
+  const [usuarioLogueado, setUsuarioLogueado] = useState(null);
 
-  // 🔧 FETCH ACCESOS
+  // 🔧 TRAER USUARIO LOGUEADO
   useEffect(() => {
+    const usuario = JSON.parse(localStorage.getItem('usuario'));
+    setUsuarioLogueado(usuario);
+  }, []);
+
+  // 🔧 Asegurarse de que fechaSeleccionada esté definido
+  const fechaFinal = fechaSeleccionada || new Date().toISOString().split('T')[0];  // Si no hay fechaSeleccionada, usar la fecha actual.
+  
+  // Asegurarnos de que `fechaSeleccionada` esté en el formato correcto 'YYYY-MM-DD'
+  const fechaFormateada = fechaFinal.split('T')[0]; // Extraemos la parte 'YYYY-MM-DD' de la fecha.
+
+  // 🔧 FETCH ACCESOS (Filtrando por usuario logueado)
+  useEffect(() => {
+    if (!usuarioLogueado) return;  // Si no hay usuario logueado, no hacer la consulta
+
     const fetchAccesos = async () => {
       try {
-        let query = supabase
-          .from('persona')
+        const { data: accesosDia, error } = await supabase
+          .from('acceso')
           .select(`
+            id_acceso,
             id_persona,
-            nombre,
-            apellido,
-            dni,
-            tipo_persona,
-            rol
-          `);
+            fecha_hora,
+            tipo_movimiento,
+            persona:id_persona (nombre, apellido, rol, tipo_persona, dni)
+          `)
+          .gte('fecha_hora', `${fechaFormateada}T00:00:00`)  // Usar fechaFormateada que es un valor válido
+          .lte('fecha_hora', `${fechaFormateada}T23:59:59`)  // Usar fechaFormateada que es un valor válido
+          .eq('id_persona', usuarioLogueado.id_persona)  // Filtrar accesos por el id_persona del usuario logueado
+          .order('fecha_hora', { ascending: false });
 
-        // Filtros
-        if (filtro) {
-          if (filtro === 'eliminado') {
-            query = query.eq('rol', 0);
-          } else {
-            query = query.eq('rol', Number(filtro));
-          }
-        } else {
-          query = query.neq('rol', 0);
-        }
-
-        const { data, error } = await query;
         if (error) throw error;
 
-        setAccesos(data || []);
+        setAccesos(accesosDia || []);
       } catch (error) {
         console.error('Error obteniendo accesos:', error.message);
       }
     };
 
-    if (user) fetchAccesos();
-  }, [user, filtro]);
+    fetchAccesos();
+  }, [fechaFormateada, usuarioLogueado]);
+
+  const rolTexto = (rol) => {
+    switch (rol) {
+      case 1: return 'Propietario';
+      case 2: return 'Trabajador';
+      case 3: return 'Residente';
+      case 4: return 'Visitante';
+      case 5: return 'Proveedor';
+      case 0: return 'Eliminado';
+      default: return rol;
+    }
+  };
 
   // 🧱 Editar rol
   const handleEdit = (persona) => {
     setEditandoPersona(persona);
-    setFormData({ rol: persona.rol.toString() });
+    setFormData({ rol: persona.persona.rol.toString() });
   };
 
   const handleGuardarEdicion = async () => {
@@ -71,10 +85,16 @@ function Accesos() {
         .eq('id_persona', editandoPersona.id_persona);
 
       if (error) throw error;
-
       setEditandoPersona(null);
       setFormData({ rol: '' });
-      setFiltro(filtro); // refrescar
+      // Actualizar tabla localmente
+      setAccesos((prev) =>
+        prev.map((a) =>
+          a.id_persona === editandoPersona.id_persona
+            ? { ...a, persona: { ...a.persona, rol: Number(formData.rol) } }
+            : a
+        )
+      );
     } catch (error) {
       console.error('Error al actualizar persona:', error.message);
     }
@@ -95,42 +115,29 @@ function Accesos() {
 
       if (error) throw error;
       setPersonaParaBaja(null);
-      setFiltro(filtro);
+      setAccesos((prev) =>
+        prev.map((a) =>
+          a.id_persona === personaParaBaja.id_persona
+            ? { ...a, persona: { ...a.persona, rol: 0 } }
+            : a
+        )
+      );
     } catch (error) {
       console.error('Error al dar de baja persona:', error.message);
     }
   };
 
   // 🧮 Filtro de búsqueda
-  const accesosFiltrados = accesos.filter((persona) => {
+  const accesosFiltrados = accesos.filter((a) => {
     const termino = busqueda.toLowerCase();
+    const persona = a.persona;
     return (
       persona.nombre?.toLowerCase().includes(termino) ||
       persona.apellido?.toLowerCase().includes(termino) ||
       persona.dni?.toLowerCase().includes(termino) ||
-      persona.id_persona?.toString().includes(termino)
+      a.id_persona?.toString().includes(termino)
     );
   });
-
-  const rolTexto = (rol) => {
-    switch (rol) {
-      case 1:
-        return 'Propietario';
-      case 2:
-        return 'Trabajador';
-      case 3:
-        return 'Residente';
-      case 4:
-        return 'Visitante';
-      case 5:
-        return 'Proveedor';
-      case 0:
-        return 'Eliminado';
-      default:
-        return rol;
-    }
-  };
-
 
   // 📄 PAGINACIÓN
   const [paginaActual, setPaginaActual] = useState(1);
@@ -139,9 +146,7 @@ function Accesos() {
   const indiceInicio = (paginaActual - 1) * registrosPorPagina;
   const indiceFin = indiceInicio + registrosPorPagina;
   const accesosPaginados = accesosFiltrados.slice(indiceInicio, indiceFin);
-
   const totalPaginas = Math.ceil(accesosFiltrados.length / registrosPorPagina);
-
   const irAPagina = (num) => {
     if (num >= 1 && num <= totalPaginas) setPaginaActual(num);
   };
@@ -149,19 +154,20 @@ function Accesos() {
   // 📄 Exportar PDF
   const exportarPDF = () => {
     const doc = new jsPDF();
-    const headers = [['ID Persona', 'Nombre', 'Apellido', 'DNI', 'Tipo Persona', 'Rol']];
-    const data = accesosFiltrados.map((p) => [
-      p.id_persona,
-      p.nombre,
-      p.apellido,
-      p.dni,
-      p.tipo_persona,
-      rolTexto(p.rol),
+    const headers = [['ID', 'Nombre', 'Apellido', 'DNI', 'Tipo', 'Rol', 'Tipo Movimiento']];
+    const data = accesosFiltrados.map((a) => [
+      a.id_persona,
+      a.persona.nombre,
+      a.persona.apellido,
+      a.persona.dni,
+      a.persona.tipo_persona,
+      rolTexto(a.persona.rol),
+      a.tipo_movimiento,
     ]);
 
     doc.setFontSize(18);
     doc.setTextColor('#3F51B5');
-    doc.text('Listado de Accesos', 14, 15);
+    doc.text(`Accesos del ${fechaSeleccionada}`, 14, 15);
 
     autoTable(doc, {
       head: headers,
@@ -172,20 +178,21 @@ function Accesos() {
       alternateRowStyles: { fillColor: '#f5f5f5' },
     });
 
-    doc.save('accesos.pdf');
+    doc.save(`accesos_${fechaSeleccionada}.pdf`);
   };
 
   // 📊 Exportar Excel
   const exportarExcel = () => {
     const wsData = [
-      ['ID Persona', 'Nombre', 'Apellido', 'DNI', 'Tipo Persona', 'Rol'],
-      ...accesosFiltrados.map((p) => [
-        p.id_persona,
-        p.nombre,
-        p.apellido,
-        p.dni,
-        p.tipo_persona,
-        rolTexto(p.rol),
+      ['ID', 'Nombre', 'Apellido', 'DNI', 'Tipo', 'Rol', 'Tipo Movimiento'],
+      ...accesosFiltrados.map((a) => [
+        a.id_persona,
+        a.persona.nombre,
+        a.persona.apellido,
+        a.persona.dni,
+        a.persona.tipo_persona,
+        rolTexto(a.persona.rol),
+        a.tipo_movimiento,
       ]),
     ];
 
@@ -199,21 +206,21 @@ function Accesos() {
 
     XLSX.utils.book_append_sheet(wb, ws, 'Accesos');
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'accesos.xlsx');
+    saveAs(new Blob([wbout], { type: 'application/octet-stream' }), `accesos_${fechaSeleccionada}.xlsx`);
   };
+
+  // ✅ Validar permisos: solo Trabajadores o Propietarios pueden editar o dar de baja
+  const puedeEditar = usuarioLogueado?.rol === 1 || usuarioLogueado?.rol === 2;
 
   return (
     <div className="bg-gray-900 text-white p-6">
-      <h2 className="text-2xl font-bold mb-4">Accesos (Rol simulado: {rol})</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center">Accesos del {fechaSeleccionada}</h2>
 
       <div className="mb-4 flex gap-4">
         <button onClick={exportarPDF} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md">
           Descargar PDF
         </button>
-        <button
-          onClick={exportarExcel}
-          className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md"
-        >
+        <button onClick={exportarExcel} className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md">
           Descargar Excel
         </button>
       </div>
@@ -231,64 +238,53 @@ function Accesos() {
             className="w-72 px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white"
           />
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Filtrar por rol:</label>
-          <select
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-            className="w-48 px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white"
-          >
-            <option value="">Todos</option>
-            <option value="1">Propietario</option>
-            <option value="2">Trabajador</option>
-            <option value="3">Residente</option>
-            <option value="4">Visitante</option>
-            <option value="5">Proveedor</option>
-            <option value="eliminado">Eliminados</option>
-</select>
-        </div>
       </div>
 
       {/* TABLA */}
       <table className="min-w-full border-collapse border border-gray-600">
         <thead>
           <tr className="bg-indigo-700">
-            <th className="px-4 py-2 text-left">ID Persona</th>
-            <th className="px-4 py-2 text-left">Nombre</th>
-            <th className="px-4 py-2 text-left">Apellido</th>
-            <th className="px-4 py-2 text-left">DNI</th>
-            <th className="px-4 py-2 text-left">Tipo Persona</th>
-            <th className="px-4 py-2 text-left">Rol</th>
-            <th className="px-4 py-2 text-left">Acciones</th>
+            <th className="px-4 py-2">ID Persona</th>
+            <th className="px-4 py-2">Nombre</th>
+            <th className="px-4 py-2">Apellido</th>
+            <th className="px-4 py-2">DNI</th>
+            <th className="px-4 py-2">Tipo Persona</th>
+            <th className="px-4 py-2">Rol</th>
+            <th className="px-4 py-2">Tipo Movimiento</th>
+            <th className="px-4 py-2">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {accesosPaginados.length > 0 ? (
-            accesosPaginados.map((persona) => (
-              <tr key={persona.id_persona} className="hover:bg-gray-800">
-                <td className="px-4 py-2">{persona.id_persona}</td>
-                <td className="px-4 py-2">{persona.nombre}</td>
-                <td className="px-4 py-2">{persona.apellido}</td>
-                <td className="px-4 py-2">{persona.dni}</td>
-                <td className="px-4 py-2">{persona.tipo_persona}</td>
-                <td className="px-4 py-2">{rolTexto(persona.rol)}</td>
+            accesosPaginados.map((a) => (
+              <tr key={a.id_acceso} className="hover:bg-gray-800">
+                <td className="px-4 py-2">{a.id_persona}</td>
+                <td className="px-4 py-2">{a.persona.nombre}</td>
+                <td className="px-4 py-2">{a.persona.apellido}</td>
+                <td className="px-4 py-2">{a.persona.dni}</td>
+                <td className="px-4 py-2">{a.persona.tipo_persona}</td>
+                <td className="px-4 py-2">{rolTexto(a.persona.rol)}</td>
+                <td className="px-4 py-2">{a.tipo_movimiento}</td>
                 <td className="px-4 py-2">
-                  {persona.rol !== 0 ? (
-                    <>
-                      <button
-                        onClick={() => handleEdit(persona)}
-                        className="bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 mr-2"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleConfirmarBaja(persona)}
-                        className="bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600"
-                      >
-                        Dar de baja
-                      </button>
-                    </>
+                  {a.persona.rol !== 0 ? (
+                    puedeEditar ? (
+                      <>
+                        <button
+                          onClick={() => handleEdit(a)}
+                          className="bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 mr-2"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleConfirmarBaja(a)}
+                          className="bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600"
+                        >
+                          Dar de baja
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-gray-300 italic">Sin permisos</span>
+                    )
                   ) : (
                     <span className="text-gray-400 italic">Dado de baja</span>
                   )}
@@ -297,7 +293,7 @@ function Accesos() {
             ))
           ) : (
             <tr>
-              <td colSpan="7" className="px-4 py-2 text-center">
+              <td colSpan="8" className="px-4 py-2 text-center text-gray-400 italic">
                 No se encontraron registros.
               </td>
             </tr>
@@ -349,7 +345,7 @@ function Accesos() {
       )}
 
       {/* MODAL EDITAR */}
-      {editandoPersona && (
+      {editandoPersona && puedeEditar && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-md shadow-md w-full max-w-md">
             <h3 className="text-xl font-semibold mb-4">Editar Rol</h3>
@@ -385,14 +381,14 @@ function Accesos() {
       )}
 
       {/* MODAL CONFIRMAR BAJA */}
-      {personaParaBaja && (
+      {personaParaBaja && puedeEditar && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-md shadow-md w-full max-w-md text-white">
             <h3 className="text-xl font-semibold mb-4">Confirmar baja</h3>
             <p className="mb-4">
               ¿Estás seguro que quieres dar de baja a{' '}
               <strong>
-                {personaParaBaja.nombre} {personaParaBaja.apellido}
+                {personaParaBaja.persona.nombre} {personaParaBaja.persona.apellido}
               </strong>
               ?
             </p>
@@ -416,5 +412,3 @@ function Accesos() {
     </div>
   );
 }
-
-export default Accesos;

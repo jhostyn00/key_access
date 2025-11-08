@@ -1,9 +1,6 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -11,6 +8,82 @@
     --foreground: #ededed;
   }
 }
+
+
+:root {
+  /* ===== Fondos ===== */
+  --bg-primary: #1e1e2f;          /* Fondo principal oscuro */
+  --bg-secondary: #2a2a3d;        /* Fondo secundario / cards */
+  --bg-glass: rgba(255, 255, 255, 0.1); /* Glass general */
+  --bg-glass-light: rgba(255, 255, 255, 0.05); /* Glass más suave */
+  --bg-header: rgba(30, 30, 50, 0.9);       /* Header / barra menú */
+
+  /* ===== Colores principales ===== */
+  --color-accent-indigo: #6c5ce7;   /* Indigo elegante */
+  --color-accent-green: #00b894;    /* Verde moderno */
+  --color-accent-red: #ff7675;      /* Rojo alertas */
+  --color-accent-yellow: #fdcb6e;   /* Amarillo botones / highlight */
+
+  /* ===== Texto ===== */
+  --text-primary: #f0f0f0;
+  --text-secondary: #dcdde1;
+  --text-muted: #999999;
+
+  /* ===== Bordes ===== */
+  --border-glass: rgba(255, 255, 255, 0.2);
+  --border-light: rgba(255, 255, 255, 0.05);
+
+  /* ===== Sombra ===== */
+  --shadow-card: 0 8px 24px rgba(0,0,0,0.3);
+  --shadow-header: 0 4px 12px rgba(0,0,0,0.4);
+
+  /* ===== Glass effect ===== */
+  --glass-blur: 15px;
+  --glass-radius: 1rem;
+
+  /* ===== Tamaños y spacing ===== */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --padding-sm: 0.25rem;
+  --padding-md: 0.5rem;
+  --padding-lg: 1rem;
+
+  /* ===== Animaciones ===== */
+  --anim-pulse: pulse 6s ease-in-out infinite;
+  --anim-spin-slow: spin 40s linear infinite;
+
+  /* ===== Gradientes ===== */
+  --gradient-primary: linear-gradient(135deg, rgba(198,182,226,0.2), rgba(183,228,199,0.2), rgba(168,208,230,0.2));
+  --gradient-accent: linear-gradient(90deg, var(--color-accent-indigo), var(--color-accent-green), var(--color-accent-yellow));
+
+  /* ===== Gráfico / SVG ===== */
+  --color-grafico-entrada: var(--color-accent-green);
+  --color-grafico-salida: var(--color-accent-red);
+  --color-grafico-ejes: var(--text-muted);
+}
+
+/* ===== Glass class para cualquier card / input / panel ===== */
+.glass-card {
+  background-color: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--shadow-card);
+}
+
+/* Animaciones globales */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 
 body *{
 
@@ -145,3 +218,31 @@ h1, h2, h3, .titulo {
   transform: translateY(-50%);
   z-index: -1;
 }
+
+
+
+.fondo-login {
+  background: linear-gradient(135deg, #FFEDD5, #FCA5A5, #FDE68A);
+  position: relative;
+}
+
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.25;
+  animation: float 6s infinite alternate;
+}
+
+.circle1 { width: 250px; height: 250px; background: #f87171; top: 10%; left: 5%; }
+.circle2 { width: 200px; height: 200px; background: #fb923c; top: 30%; left: 80%; }
+.circle3 { width: 300px; height: 300px; background: #fcd34d; top: 60%; left: 10%; }
+.circle4 { width: 150px; height: 150px; background: #fbbf24; top: 70%; left: 50%; }
+.circle5 { width: 180px; height: 180px; background: #fca5a5; top: 20%; left: 60%; }
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-20px); }
+}
+
+
+
