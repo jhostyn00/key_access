@@ -238,7 +238,7 @@ export default function PanelGeneral() {
 
         {vista === 'alertas' && (
           <section>
-            <h2 className="text-2xl font-bold mb-4 text-center text-gray-800">🚨 Alertas / Notificaciones</h2>
+            <h2 className="text-2xl font-bold mb-4 text-center text-gray-800">🚨 Avisos / Notificaciones</h2>
             {alertas.length > 0 ? (
               <ul className="space-y-3">
                 {alertas.map(a => (

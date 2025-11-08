@@ -30,6 +30,21 @@ export default function RegistrarAccesoPage() {
 
       const id_persona = persona.id_persona;
 
+      // Contar el número de accesos previos de esta persona (sin contar el actual)
+      const { data: accesosPrevios, error: accesosError } = await supabase
+        .from('acceso')
+        .select('id_acceso')
+        .eq('id_persona', id_persona);
+
+      if (accesosError) {
+        setStatus('❌ Error obteniendo accesos previos');
+        return;
+      }
+
+      // Determinar el tipo de movimiento basado en la cantidad de accesos previos
+      const esEntrada = accesosPrevios.length % 2 === 0; // Si la cantidad de accesos es par, es una "entrada" (primer acceso)
+      const tipoMovimiento = esEntrada ? 'ingreso' : 'salida';
+
       // Obtener el último id_acceso para generar uno nuevo
       const { data: maxIdData, error: maxIdError } = await supabase
         .from('acceso')
@@ -61,7 +76,7 @@ export default function RegistrarAccesoPage() {
         .insert({
           id_acceso: nuevoIdAcceso,
           id_persona: id_persona,
-          tipo_movimiento: 'ingreso', // o 'salida', según corresponda
+          tipo_movimiento: tipoMovimiento, // Se registra como ingreso o salida
           id_autorizador: 38, // Ajusta según tu lógica
           observaciones: 'Acceso registrado automáticamente',
           fecha_hora: fechaHora,
@@ -73,7 +88,7 @@ export default function RegistrarAccesoPage() {
         return;
       }
 
-      setStatus('✅ Acceso registrado correctamente');
+      setStatus(`✅ Acceso registrado correctamente como ${tipoMovimiento}`);
     };
 
     registrar();

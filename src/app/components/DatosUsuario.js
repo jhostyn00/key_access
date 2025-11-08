@@ -176,7 +176,7 @@ export default function PanelGeneral() {
                 vista === v ? 'underline underline-offset-8 text-color-accent' : ''
               }`}
             >
-              {v === 'resumen' ? '🏠 Resumen' : v === 'accesos' ? '📋 Últimos accesos' : '🚨 Alertas'}
+              {v === 'resumen' ? '🏠 Resumen' : v === 'accesos' ? '📋 Últimos accesos' : '🚨 Avisos'}
             </button>
           ))}
         </nav>
@@ -277,7 +277,7 @@ export default function PanelGeneral() {
         {/* ALERTAS */}
         {vista === 'alertas' && (
           <section>
-            <h2 className="text-2xl font-bold mb-4 text-center text-text-primary">🚨 Alertas / Notificaciones</h2>
+            <h2 className="text-2xl font-bold mb-4 text-center text-text-primary">🚨 Avisos / Notificaciones</h2>
             {alertas.length > 0 ? (
               <ul className="space-y-3">
                 {alertas.map((a) => (

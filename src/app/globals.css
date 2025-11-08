@@ -244,5 +244,72 @@ h1, h2, h3, .titulo {
   100% { transform: translateY(-20px); }
 }
 
+/* Estilos para el aside (sidebar) */
+.aside-panel {
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  background-color: #000;
+  color: #fff;
+  margin: 20px;
+  height: min-content;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: width 0.3s ease;
+}
+
+/* Estilo para los botones en el sidebar */
+.nav-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex: 1;
+  align-items: start;
+}
+
+/* Estilo base para cada ícono del sidebar */
+.div-nav-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border-radius: 50%;
+  transition: all 0.3s;
+  color: #fff;
+  background-color: transparent;
+  cursor: pointer;
+  text-align: center;
+  justify-content: center;
+  transform: scale(1);
+  width: auto;
+}
+
+/* Estilo para el texto que aparece al hacer hover */
+.div-nav-panel span.texto-hover {
+  position: relative;
+  font-size: 1rem;
+  max-width: 0; /* Inicialmente oculto */
+  white-space: nowrap;
+  overflow: hidden;
+  transition: max-width 0.3s ease; /* Transición suave */
+  opacity: 0; /* Inicialmente invisible */
+  color: white;
+}
+
+/* Cuando se pasa el ratón (hover) sobre el ícono */
+.div-nav-panel:hover span.texto-hover {
+  max-width: 10rem; /* Expande el texto */
+  opacity: 1; /* Hace el texto visible */
+}
+
+/* Íconos en el sidebar */
+.div-nav-panel span {
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+}
 
 

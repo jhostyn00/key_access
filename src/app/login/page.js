@@ -49,6 +49,7 @@ const handleLogin = async (e) => {
   localStorage.setItem('user_dni', data.dni);
   localStorage.setItem('user_correo', data.correo);
   localStorage.setItem('user_uid_tarjeta', data.uid_tarjeta);
+  localStorage.setItem('user_tipo_persona', data.tipo_persona); 
   // Puedes agregar más campos si los tienes en tu tabla `persona`
 
   alert('Bienvenido, ' + data.nombre);
